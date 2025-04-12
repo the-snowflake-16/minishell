@@ -6,7 +6,7 @@
 /*   By: thrychka <thrychka@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/19 13:52:32 by thrychka          #+#    #+#             */
-/*   Updated: 2025/04/09 16:08:59 by thrychka         ###   ########.fr       */
+/*   Updated: 2025/04/11 17:50:17 by thrychka         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,4 +58,5 @@ void				ft_putstr_fd(char *s, int fd);
 void				ft_putendl_fd(char *s, int fd);
 void				ft_putnbr_fd(int nb, int fd);
 int					ft_strcmp(const char *s1, const char *s2);
+char				*ft_strndup(const char *s, size_t n);
 #endif

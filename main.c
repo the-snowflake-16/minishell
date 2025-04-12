@@ -26,19 +26,19 @@ void check_input(int argc, char **argv, char **env)
         exit(0);
     }
 }
-// int main(int argc, char **argv, char **env) {
-//     char *input;
-//     check_input(argc, argv, env);
-//     while (1)
-//     {
-//         input = readline("minishell$ ");
-//         if(!input)
-//             break;
-//         if(input)
-//             add_history(input);
-//         cmp_input(input, env);
-//         free(input);
-//     }
+int main(int argc, char **argv, char **env) {
+    char *input;
+    check_input(argc, argv, env);
+    while (1)
+    {
+        input = readline("minishell$ ");
+        if(!input)
+            break;
+        if(input)
+            add_history(input);
+        cmp_input(input, env);
+        free(input);
+    }
 
-//     return 0;
-// }
+    return 0;
+}
