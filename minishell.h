@@ -38,7 +38,12 @@ typedef struct s_parser
     struct s_parser *next;
 } t_parser;
 
-
+typedef struct s_env
+{
+    char *key;
+    char *value;
+    struct s_env *next;
+} t_env;
 
 // token_utils.c
 int count_words(char *s);
@@ -58,5 +63,13 @@ void check_symbol(t_parser *parser);
 
 // sort_input.c
 char	*filter(char *s);
+
+// create_list.c
+void start_token(char *input);
+
+
+// env.c
+t_env *init_env(char **s);
+void print_env(t_env *env);
 
 #endif

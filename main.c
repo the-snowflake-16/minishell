@@ -1,5 +1,4 @@
 #include "minishell.h"
-#include <string.h>
 
 int cmp_input(char *input, char **env)
 {
@@ -26,9 +25,10 @@ void check_input(int argc, char **argv, char **env)
         exit(0);
     }
 }
-int main(int argc, char **argv, char **env) {
+
+void init_minishell(char **env)
+{
     char *input;
-    check_input(argc, argv, env);
     while (1)
     {
         input = readline("minishell$ ");
@@ -36,9 +36,19 @@ int main(int argc, char **argv, char **env) {
             break;
         if(input)
             add_history(input);
-        cmp_input(input, env);
+        start_token(input);
+        
+        t_env *my_env = init_env(env);
+        // print_env(my_env);
+        // cmp_input(input, env);
         free(input);
     }
+    
+}
+int main(int argc, char **argv, char **env) {
+
+    check_input(argc, argv, env);
+    init_minishell(env);
 
     return 0;
 }
