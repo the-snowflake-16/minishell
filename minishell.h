@@ -11,18 +11,12 @@
 
 
 typedef enum e_token_type {
-    TOKEN_WORD,         // Обычное слово (команда или аргумент)
-    TOKEN_PIPE,         // Символ pipe |
-    TOKEN_REDIR_IN,       // Перенаправление ввода <
-    TOKEN_REDIR_OUT,    // Перенаправление вывода >
-    TOKEN_REDIR_APPEND, // Дописывание в файл >>
-    TOKEN_REDIR_HEREDOC, // Здесь-документ <<
-    TOKEN_QUOTE,        // Кавычки '
-    TOKEN_DQUOTE,       // Двойные кавычки "
-    TOKEN_EOF,          // Конец ввода
-    TOKEN_ERROR,         // Ошибка токенизации
-    CAT,
-    ECHO
+    TOKEN_WORD,         // команда или аргумент
+    TOKEN_PIPE,         //  |
+    TOKEN_REDIR_IN,       //  <
+    TOKEN_REDIR_OUT,    //  >
+    TOKEN_REDIR_APPEND, // >>
+    TOKEN_REDIR_HEREDOC, // <<
 } t_token_type;
 
 typedef struct s_token
@@ -65,11 +59,18 @@ void check_symbol(t_parser *parser);
 char	*filter(char *s);
 
 // create_list.c
-void start_token(char *input);
+void free_list(t_parser *head);
+t_parser	*create_list(char **ss);
+void print_list(t_parser *parser);
 
 
 // env.c
 t_env *init_env(char **s);
 void print_env(t_env *env);
+void free_env(t_env *env);
+
+
+// first_check_input.c
+int incorect_input(char *s);
 
 #endif

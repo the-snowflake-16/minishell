@@ -14,6 +14,7 @@ void free_env(t_env *env)
         free(env);
         env = tmp;
     }
+    free(tmp);
 }
 void ft_split_equal(char *s, t_env *env)
 {

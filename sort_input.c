@@ -53,6 +53,10 @@ char	*filter(char *s)
 					i++;
 					break ;
 				}
+				if(i < len -1 && result[i] == '>' && result[i+1] == '>')
+					i++;
+				if(i < len -1 && result[i] == '<' && result[i+1] == '<')
+					i++;
 				if (i < len - 1 && result[i + 1] != ' ')
 				{
 					new_str = add_space_after(result, i);

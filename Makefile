@@ -2,10 +2,10 @@ NAME = minishell
 
 CC = cc
 # -lreadline
-CFLAGS =  -Wextra -Werror -g
+CFLAGS =   -Werror -g
 LDFLAGS = -lreadline -L libft -lft
 
-SRC = token.c token_utils.c creat_list.c sort_input.c env.c main.c
+SRC = token.c token_utils.c creat_list.c sort_input.c env.c main.c first_check_input.c
 OBJ = $(SRC:.c=.o)
 
 all: $(NAME)
