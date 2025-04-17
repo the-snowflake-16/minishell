@@ -1,13 +1,11 @@
 #include "minishell.h"
-
-void cmp_input(char *input, t_env *my_env)
+void ft_pwd(t_env *my_env)
 {
-    if(ft_strcmp(input, "exit") == 0)
+    while (my_env)
     {
-        free(input);
-        free_env(my_env);
-        
-        exit(1);
+        if(! ft_strcmp(my_env->key, "PWD"))
+            printf("%s\n", my_env->value);
+        my_env = my_env->next;
     }
 }
 // void check_input(int argc, char **argv, char **env)
@@ -18,29 +16,41 @@ void cmp_input(char *input, t_env *my_env)
 //         // exit(0);
 //     }
 // }
-// void cmp_inpu(t_parser *parser_list)
-// {
-//     // printf("%s\n", parser_list->word);
-//     if(!ft_strcmp(parser_list->word, "echo") && parser_list->next == NULL)
-//         printf("\n");
-//     else if(!ft_strcmp(parser_list->word, "echo") && parser_list->next->type == TOKEN_WORD)
-//         printf("%s\n", parser_list->next->word);
-// }
-void start_token(char *input)
+void cmp_inpu(t_parser *parser_list, t_env *my_env)
+{
+    // printf("%s\n", parser_list->word);
+    if(!ft_strcmp(parser_list->word, "exit") && parser_list->next == NULL)
+    {
+        free_list(parser_list);
+        free_env(my_env);
+        
+        exit(1);
+    }
+    else if(!ft_strcmp(parser_list->word, "pwd") && parser_list->next == NULL)
+    {
+        ft_pwd(my_env);
+    }
+       
+    else if(!ft_strcmp(parser_list->word, "env") && parser_list->next == NULL)
+        print_env(my_env);
+    
+}
+void start_token(char *input, t_env *env)
 {
     if(!incorect_input(input))
     {
         char *sort_input = filter(input);
         t_token *token = tokenize(sort_input);
         // check_arr_of_token(token);
+        free(sort_input);
         
         t_parser *parser_list = create_list(token->token_arr);
         if (parser_list) {
-            cmp_inpu(parser_list);
-            // print_list(parser_list);
+            cmp_inpu(parser_list, env);
+            print_list(parser_list);
             free_list(parser_list);
         }
-        free(sort_input);
+
         free_token(token); 
     }
    
@@ -55,11 +65,12 @@ void init_minishell(char **env)
             break;
         if(input)
             add_history(input);
-        start_token(input);
+
         
         t_env *my_env = init_env(env);
-        // print_env(my_env);
-        cmp_input(input, my_env);
+        start_token(input, my_env);
+        
+        // cmp_input(input, my_env);
         free(input);
         free_env(my_env);
     } 
