@@ -1,12 +1,15 @@
 #include "minishell.h"
 void ft_pwd(t_env *my_env)
 {
-    while (my_env)
-    {
-        if(! ft_strcmp(my_env->key, "PWD"))
-            printf("%s\n", my_env->value);
-        my_env = my_env->next;
-    }
+    char path[1024];
+    getcwd(path, sizeof(path));
+    printf("Текущий каталог: %s\n", path);
+    // while (my_env)
+    // {
+    //     if(! ft_strcmp(my_env->key, "PWD"))
+    //         printf("%s\n", my_env->value);
+    //     my_env = my_env->next;
+    // }
 }
 // void check_input(int argc, char **argv, char **env)
 // {
@@ -16,14 +19,21 @@ void ft_pwd(t_env *my_env)
 //         // exit(0);
 //     }
 // }
-void cmp_inpu(t_parser *parser_list, t_env *my_env)
+
+void change_cwd(char *cwd, char *swd)
+{
+    if(chdir(swd)== -1)
+        printf("%s dirctory does`n exist\n", swd);
+}
+
+void cmp_inpu(t_parser *parser_list, t_env *my_env, t_token *token)
 {
     // printf("%s\n", parser_list->word);
     if(!ft_strcmp(parser_list->word, "exit") && parser_list->next == NULL)
     {
         free_list(parser_list);
         free_env(my_env);
-        
+        free_token(token);
         exit(1);
     }
     else if(!ft_strcmp(parser_list->word, "pwd") && parser_list->next == NULL)
@@ -33,8 +43,13 @@ void cmp_inpu(t_parser *parser_list, t_env *my_env)
        
     else if(!ft_strcmp(parser_list->word, "env") && parser_list->next == NULL)
         print_env(my_env);
-    
+    else if(!ft_strcmp(parser_list->word, "cd") && parser_list->next->type == TOKEN_WORD)
+        change_cwd(parser_list->word, parser_list->next->word);
+    else if(parser_list->word)
+        start_execve(parser_list, my_env);
 }
+
+
 void start_token(char *input, t_env *env)
 {
     if(!incorect_input(input))
@@ -46,7 +61,7 @@ void start_token(char *input, t_env *env)
         
         t_parser *parser_list = create_list(token->token_arr);
         if (parser_list) {
-            cmp_inpu(parser_list, env);
+            cmp_inpu(parser_list, env, token);
             print_list(parser_list);
             free_list(parser_list);
         }
@@ -69,6 +84,7 @@ void init_minishell(char **env)
         
         t_env *my_env = init_env(env);
         start_token(input, my_env);
+
         
         // cmp_input(input, my_env);
         free(input);

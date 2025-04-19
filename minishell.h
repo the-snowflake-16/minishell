@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -72,5 +74,8 @@ void free_env(t_env *env);
 
 // first_check_input.c
 int incorect_input(char *s);
+
+// execve.c
+void start_execve(t_parser *parser_list, t_env *my_env);
 
 #endif
