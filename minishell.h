@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <stdbool.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -38,6 +39,8 @@ typedef struct s_env
 {
     char *key;
     char *value;
+    int exported;
+    int index;
     struct s_env *next;
 } t_env;
 
@@ -77,5 +80,16 @@ int incorect_input(char *s);
 
 // execve.c
 void start_execve(t_parser *parser_list, t_env *my_env);
+char **t_env_to_envp(t_env *env);
+
+// export_print.c
+void export_print(t_env *my_env);
+int count_exported(t_env *my_env);
+
+// export_add.c
+void export_add(t_env *my_env, char *s);
+
+// export_utils.c
+int check_str_for_export_add_after_equal(char *s);
 
 #endif

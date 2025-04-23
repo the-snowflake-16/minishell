@@ -34,6 +34,7 @@ t_env *add_left_right(char *s)
     if (!new_env)
         return NULL;
     ft_split_equal(s, new_env);
+    new_env->exported = 1;
     new_env->next = NULL;
     return new_env;
 }
@@ -68,13 +69,18 @@ t_env *init_env(char **s)
     return head;
 }
 
-void print_env(t_env *env)
+// void init_export_for_env(t_env *my_env)
+// {
+
+// }
+void print_env(t_env *my_env)
 {
-    while (env != NULL)
-    {
-        printf("%s=%s\n", env->key, env->value);
-        env = env->next;
-    }
+    if(my_env)
+        while (my_env != NULL)
+        {
+            printf("%s=%s\n", my_env->key, my_env->value);
+            my_env = my_env->next;
+        }
 }
 
 
