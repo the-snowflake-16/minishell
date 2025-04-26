@@ -59,13 +59,22 @@ int incorect_quote(char *s)
 {
     int quote_count = 0;
     int double_quote = 0;
+    int double_check = 0;
+    int single_check = 0;
     for (int i = 0; s[i]; i++)
     {
-        if (s[i] == '\'')
-            quote_count++;
-        else if (s[i] == '"')
+        if (s[i] == '\'' && !single_check)
         {
+            quote_count++;
+            double_check = 1;
+
+        }
+
+        else if (s[i] == '"' && !double_check)
+        {
+            single_check = 1;
             double_quote++;
+
         }
         
     }

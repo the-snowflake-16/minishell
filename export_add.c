@@ -72,6 +72,21 @@ char *split_by_equal(char *s)
     res[j] = '\0';
     return(res);
 }
+char *delete_quotes_export(char *s)
+{
+    int len = ft_strlen(s);
+    char *res = malloc(sizeof(char) * (len -1));
+    int i = 0;
+    int j = 1;
+    while (j < len - 1)
+    {
+        res[i] = s[j];
+        i++;
+        j++;
+    }
+    res[i] = '\0';
+    return res;
+}
 void export_add(t_env *my_env, char *s)
 {
     if(!incorect_input_for_key(s))
@@ -79,7 +94,19 @@ void export_add(t_env *my_env, char *s)
         char *key = split_by_equal_key(s);
         char *word;
         if(check_str_for_export_add_after_equal(s))
+        {
             word = split_by_equal(s);
+            printf("%s\n", word);
+            printf("%zu\n", ft_strlen(word));
+            if((word[0] == '\'' || word[0] == '"') && word[0] == word[ft_strlen(word) -1])
+            {
+                char *tmp = delete_quotes_export(word);
+                free(word);
+                word = tmp;
+            }
+
+        }
+
         t_env *tmp = NULL;
     
         tmp = find_key(my_env, key);
@@ -100,13 +127,13 @@ void export_add(t_env *my_env, char *s)
                     
                     // my_env->key = ft_strdup("GHHG");
                     // free(my_env->value);
-                    fix_word(word);
+                    // fix_word(word);
                     my_env->value = ft_strdup(word);
                     // new_env->value = ft_strdup("some");
                     printf("%s\n", my_env->value);
                 }
                 else
-                    my_env->value = ft_strdup("\0");
+                    my_env->value = ft_strdup("");
             }
             // new_env = new_env->next;
             // free(tmp);

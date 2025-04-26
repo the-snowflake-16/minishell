@@ -95,18 +95,18 @@ void ft_free_array(char **arr)
     free(arr);
 }
 
-void start_execve(t_parser *parser_list, t_env *my_env)
+void start_execve(char **ss, t_env *my_env)
 {
     char **envp = t_env_to_envp(my_env);
     char *path = get_path_from_env(my_env);
     char **paths = ft_split(path, ':');
 
     for (int i = 0; paths[i]; i++) {
-        char *full_path = ft_strjoin_with_slash(paths[i], parser_list->word);
+        char *full_path = ft_strjoin_with_slash(paths[i], *ss);
         if (access(full_path, X_OK) == 0) {
             pid_t pid = fork();
             if (pid == 0) {
-                execve(full_path, &parser_list->word, envp);
+                execve(full_path, ss, envp);
                 perror("execve"); 
                 exit(1);
             } else if (pid > 0) {

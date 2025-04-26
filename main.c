@@ -19,56 +19,72 @@ void ft_pwd()
 //         // exit(0);
 //     }
 // }
-
-void change_cwd(char *swd)
+int count_words_in_arr(char **ss)
 {
-    if(chdir(swd)== -1)
-        printf("%s dirctory does`n exist\n", swd);
+    int i = 0;
+    while (ss[i])
+    {
+        i++;
+    }
+    return i;
 }
 
-void cmp_inpu(t_parser *parser_list, t_env *my_env, t_token *token)
+void change_cwd(char **swd)
+{
+    if(chdir(swd[1])== -1)
+        printf("dirctory does`n exist\n");
+}
+
+void cmp_inpu(t_command *command, t_env *my_env, t_token *token)
 {
     // printf("%s\n", parser_list->word);
-    if(!ft_strcmp(parser_list->word, "exit") && parser_list->next == NULL)
+    if(!ft_strcmp(command->command, "exit"))
     {
-        free_list(parser_list);
+        free_comand(command);
         free_env(my_env);
         free_token(token);
+        // 
         exit(1);
     }
-    else if(!ft_strcmp(parser_list->word, "pwd") && parser_list->next == NULL)
-    {
+    else if(!ft_strcmp(command->command, "pwd"))
         ft_pwd();
-    }
-       
+    else if(!ft_strcmp(command->command, "cd"))
+        change_cwd(command->args);
+    else if(!ft_strcmp(command->command, "export") && count_words_in_arr(command->args) > 1)
+        export_create(my_env, command->args[1]);
 
-    else if(!ft_strcmp(parser_list->word, "cd") && parser_list->next->type == TOKEN_WORD)
-        change_cwd(parser_list->next->word);
-    else if(!ft_strcmp(parser_list->word, "export") && parser_list->next == NULL)
+    else if(!ft_strcmp(command->command, "export") && count_words_in_arr(command->args) == 1)
         export_print(my_env);
-    else if(!ft_strcmp(parser_list->word, "export") && parser_list->next->type == TOKEN_WORD)
-        export_add(my_env, parser_list->next->word);
-    else if(!ft_strcmp(parser_list->word, "env") && parser_list->next == NULL)
-            print_env(my_env);
-    else if(parser_list->word)
-        start_execve(parser_list, my_env);
+    else if(!ft_strcmp(command->command, "env"))
+        print_env(my_env);
+    else if(!ft_strcmp(command->command, "unset"))
+    {
+        if(!command->args[1])
+            printf ("unset: not enough arguments\n");
+        else
+            unset(&my_env, command->args[1]);
+    }
+    else if(command->command)
+        start_execve(command->args, my_env);
 }
 
 
-void start_token(char *input, t_env *env)
+void start_token(char *input, t_env *my_env)
 {
+
     if(!incorect_input(input))
     {
         char *sort_input = filter(input);
         t_token *token = tokenize(sort_input);
-        // check_arr_of_token(token);
+        check_arr_of_token(token);
         free(sort_input);
         
-        t_parser *parser_list = create_list(token->token_arr);
-        if (parser_list) {
-            cmp_inpu(parser_list, env, token);
-            print_list(parser_list);
-            free_list(parser_list);
+        t_parser *parser_list = create_list(token->token_arr, my_env);
+        t_command *command = create_command(parser_list);
+        if (command) {
+            cmp_inpu(command, my_env, token);
+            print_command(command);
+            free_comand(command);
         }
 
         free_token(token); 

@@ -104,16 +104,30 @@ char **ft_splitt(char *s)
     rs[word_index] = NULL;
     return rs;
 }
+// int count(char *s)
+// {
+//     int i = 0;
+//     int count = 0;
+//     while (s[i])
+//     {
+//         i++;
+//     }
+    
+// }
+// char *ft_spli(char *s)
+// {
+//     char **rs;
+// }
 // only for checking don`t delete
 //  !!!!!!!!!!!!!!!!!!
-// void check_arr_of_token(t_token *token)
-// {   
+void check_arr_of_token(t_token *token)
+{   
 
-//         for (int i = 0; token->token_arr[i]; i++)
-//         {
-//             printf("Token %d: %s\n", i, token->token_arr[i]);
-//         }
-//         printf("Word count: %d\n", token->count_tokens);
+        for (int i = 0; token->token_arr[i]; i++)
+        {
+            printf("Token %d: %s\n", i, token->token_arr[i]);
+        }
+        printf("Word count: %d\n", token->count_tokens);
 
-// }
+}
 
