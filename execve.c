@@ -100,10 +100,11 @@ void start_execve(char **ss, t_env *my_env)
     char **envp = t_env_to_envp(my_env);
     char *path = get_path_from_env(my_env);
     char **paths = ft_split(path, ':');
-
+    
     for (int i = 0; paths[i]; i++) {
         char *full_path = ft_strjoin_with_slash(paths[i], *ss);
         if (access(full_path, X_OK) == 0) {
+            printf("%s\n", full_path);
             pid_t pid = fork();
             if (pid == 0) {
                 execve(full_path, ss, envp);
