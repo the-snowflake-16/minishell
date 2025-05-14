@@ -1,3 +1,7 @@
+.vscode
 *.o
 minishell
 a.out
+*.txt
+
+minishell_tester

@@ -1,16 +1,35 @@
 #include "minishell.h"
-void ft_pwd()
+#include <unistd.h>
+#include <stdio.h>
+
+#include <stdio.h>
+#include <unistd.h>
+
+#include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
+
+int g_exit_code;
+
+void ft_pwd(void)
 {
-    char path[1024];
-    getcwd(path, sizeof(path));
-    printf("%s\n", path);
-    // while (my_env)
-    // {
-    //     if(! ft_strcmp(my_env->key, "PWD"))
-    //         printf("%s\n", my_env->value);
-    //     my_env = my_env->next;
-    // }
+    char path[4096];
+
+    if (getcwd(path, sizeof(path)) != NULL)
+    {
+        printf("%s\n", path);
+        g_exit_code = 0;
+    }
+    else
+    {
+        perror("pwd"); // Выводит: pwd: <ошибка>
+        g_exit_code = 1;
+    }
 }
+
+
+
 // void check_input(int argc, char **argv, char **env)
 // {
 //     if(argc == 3 && strcmp(argv[1], "-c") == 0)
@@ -29,23 +48,103 @@ int count_words_in_arr(char **ss)
     return i;
 }
 
-void change_cwd(char **swd)
+int change_cwd(char **swd)
 {
-    if(chdir(swd[1])== -1)
-        printf("dirctory does`n exist\n");
+    int count = 0;
+
+    while (swd[count])
+        count++;
+
+    if (count == 1) // Только "cd" — переходим в $HOME
+    {
+        char *home = getenv("HOME");
+        if (!home)
+        {
+            fprintf(stderr, "cd: HOME not set\n");
+            return 1;
+        }
+        if (chdir(home) == -1)
+        {
+            perror("cd");
+            return 1;
+        }
+    }
+    else if (count > 2) // Слишком много аргументов
+    {
+        fprintf(stderr, "cd: too many arguments\n");
+        return 1;
+    }
+    else // Обычный случай: cd path
+    {
+        if (chdir(swd[1]) == -1)
+        {
+            perror("cd");
+            return 1;
+        }
+    }
+    return 0;
 }
 
-void cmp_inpu(t_command *command, t_env *my_env, t_token *token)
+int echo(t_command *command, t_env *my_env)
 {
+    int i = 1;
+    // printf("Im in echo\n");
+
+    while (command->args[i])
+    {
+        if (command->double_qoutes == true)
+        {
+            char *key = get_parametr(command->args[i]);
+            // printf("key: %s\n", key);
+            if (check_key_in_env(my_env, key))
+            {
+                // printf("IM HERE");
+                t_env *my_key = find_key(my_env, key);
+                // char *word = ft_strdup(my_key->value);
+                printf("%s", my_key->value);
+            }
+            else
+            {
+                printf("%s", command->args[i]);
+            }
+            free(key);
+        }
+        
+        else if(!ft_strcmp(command->args[i], "$?"))
+        {
+            printf("%d\n", command->exit_code);
+            i++;
+        }
+        else {
+            printf("%s", command->args[i]);
+        }
+
+        if (command->args[i + 1])
+            printf(" ");
+        i++;
+    }
+    printf("\n");
+    return 0;
+}
+
+void cmp_inpu(t_command *command, t_env *my_env)
+{
+
     // printf("%s\n", parser_list->word);
     if(!ft_strcmp(command->command, "exit"))
     {
         free_comand(command);
         free_env(my_env);
-        free_token(token);
         // 
         exit(1);
     }
+    else if(!ft_strcmp(command->command, "echo"))
+        echo(command, my_env);
+    // else if(command->redirects->is_output)
+    //     redirect(command->redirects->file, command->args);
+    // else if (command->redirects->is_append)
+    //     redirect_append(command->redirects->file, command->args);
+    
     else if(!ft_strcmp(command->command, "pwd"))
         ft_pwd();
     else if(!ft_strcmp(command->command, "cd"))
@@ -76,14 +175,14 @@ void start_token(char *input, t_env *my_env)
     {
         char *sort_input = filter(input);
         t_token *token = tokenize(sort_input);
-        check_arr_of_token(token);
+        // check_arr_of_token(token);
         free(sort_input);
         
         t_parser *parser_list = create_list(token->token_arr, my_env);
         t_command *command = create_command(parser_list);
         if (command) {
-            cmp_inpu(command, my_env, token);
-            print_command(command);
+            execute_pipeline(command, my_env);
+            // print_command(command);
             free_comand(command);
         }
 
@@ -97,7 +196,7 @@ void init_minishell(char **env)
     char *input;
     while (1)
     {
-        input = readline("minishell$ ");
+        input = readline("minishell❄️   ");
         if(!input)
             break;
         if(input)

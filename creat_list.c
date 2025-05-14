@@ -50,6 +50,12 @@ int	chech_symbol(char *s)
 		return (TOKEN_REDIR_OUT);
 	if (!ft_strcmp(s, "|"))
 		return (TOKEN_PIPE);
+    if(ft_strchr(s, '"'))
+    {
+        printf("find qoutes");
+        return(TOKEN_DOUBLE_QUOTES); 
+    }
+  
 	return (TOKEN_WORD);
 }
 
@@ -59,16 +65,24 @@ char *delete_quotes(const char *s, char q)
     int i = 1;
     int j = 0;
     char *res;
+    int count = 0;
+    while (s[i])
+    {
+        if(s[i] == q)
+            count++;
+        i++;
+    }
 
-    if (len < 2 || s[0] != q || s[len - 1] != q)
-        return ft_strdup(s);
-
-    res = malloc(len - 1);
+    res = malloc(len - count + 1);
     if (!res)
         return NULL;
-
-    while (i < len - 1)
+    i = 0;
+    while (j < len - count)
     {
+        if (s[i]== q && s[i+1] != q)
+            i++;
+        else if (s[i] == q && s[i+1] == q)
+            i += 2;
         res[j] = s[i];
         i++;
         j++;
@@ -133,26 +147,50 @@ t_parser *create_list(char **ss, t_env *my_env)
         if(ss[i][0] == '$' )
         {
             char *key = get_parametr(ss[i]);
-            t_env *my_key = find_key(my_env, key);
-            word = ft_strdup(my_key->value);
+            if (check_key_in_env(my_env, key))
+            {
+                t_env *my_key = find_key(my_env, key);
+                word = ft_strdup(my_key->value);
+                new_node = creat_node(word);
+                new_node->double_quotes = false;
+                free(key);
+                free(word);
+            }
+            else if(ss[i][1], ss[i][1] == '?')
+            {
+                word = ft_strdup("0");
+                new_node = creat_node(word);
+                new_node->double_quotes = false;
+                free(key);
+                free(word);
+            }
+            else
+            {
+                word = ft_strdup("\0");
+                new_node = creat_node(word);
+                new_node->double_quotes = false;
+                free(key);
+                free(word);
+            }
+        }
+        else if (ft_strchr(ss[i], '\''))
+        {
+            word = delete_quotes(ss[i], '\'');
             new_node = creat_node(word);
-            free(key);
+            new_node->double_quotes = false;
             free(word);
         }
-
-        else if ((ss[i][0] == '\'' || ss[i][0] == '"') && ss[i][ft_strlen(ss[i]) - 1] == ss[i][0])
+        else if (ft_strchr(ss[i], '"'))
         {
-            word = delete_quotes(ss[i], ss[i][0]);
+            word = delete_quotes(ss[i], '"');
             new_node = creat_node(word);
-            if (ss[i][0] == '\'')
-                new_node->single_quotes = 1;
-            else
-                new_node->double_quotes = 1; 
+            new_node->double_quotes = true;
             free(word);
         }
         else
         {
             new_node = creat_node(ss[i]);
+            new_node->double_quotes = false;
         }
 
         if (!append_node(&head, &current, new_node))
@@ -212,9 +250,13 @@ void print_redirect(t_redirect *redir)
         return;
     }
     printf("  Redirect:\n");
-    printf("    file: %s\n", redir->file ? redir->file : "(null)");
-    printf("    is_output: %s\n", redir->is_output ? "true" : "false");
-    printf("    append: %s\n", redir->append ? "true" : "false");
+    if (redir->file != NULL) {
+        printf("Redirect file: %s\n", redir->file);
+    } else {
+        fprintf(stderr, "Error: Redirect file is NULL!\n");
+    }
+    printf("    is_input: %s\n", redir->is_input ? "true" : "false");
+    printf("    append: %s\n", redir->is_append ? "true" : "false");
     printf("    is_heredoc: %s\n", redir->is_heredoc ? "true" : "false");
 }
 
@@ -238,10 +280,7 @@ void print_command(t_command *cmd)
             printf("  No args\n");
 
         printf("Input redirect:\n");
-        print_redirect(cmd->input);
-
-        printf("Output redirect:\n");
-        print_redirect(cmd->output);
+        print_redirect(cmd->redirects);
 
         printf("\n---\n");
         cmd = cmd->next;
@@ -252,9 +291,8 @@ void print_command(t_command *cmd)
 void init_comand(t_command *comand)
 {
     comand->args = NULL;
-    comand->input = NULL;
+    comand->redirects = NULL;
     comand->next = NULL;
-    comand->output = NULL;
 }
 // void free_comand(t_command *command)
 // {
@@ -296,20 +334,12 @@ void free_comand(t_command *command)
             free(command->args);
         }
 
-        if (command->input)
+        if (command->redirects)
         {
-            if (command->input->file)
-                free(command->input->file);
-            free(command->input);
+            if (command->redirects->file)
+                free(command->redirects->file);
+            free(command->redirects);
         }
-
-        if (command->output)
-        {
-            if (command->output->file)
-                free(command->output->file);
-            free(command->output);
-        }
-
         free(command);
         command = tmp;
     }
@@ -318,74 +348,79 @@ void free_comand(t_command *command)
 
 
 
-void init_redirin(char *file, t_token_type inp, t_command *cmd)
+void init_redirin(t_command *cmd, t_token_type inp, char *file)
 {
-    if (!cmd->input)
+    if (!cmd->redirects)
     {
-        cmd->input = malloc(sizeof(t_redirect));
-        if (!cmd->input)
+        cmd->redirects = malloc(sizeof(t_redirect));
+        if (!cmd->redirects)
             return;
-        cmd->input->file = NULL;
+        // cmd->input->file = file;
     }
 
     if(inp == TOKEN_REDIR_IN)
     {
-        cmd->input->file = ft_strdup(file);
-        cmd->input->is_heredoc = false;
-        cmd->input->append = false;
-        cmd->input->is_output = false;
+        cmd->redirects->file = ft_strdup(file);
+        cmd->redirects->is_heredoc = false;
+        cmd->redirects->is_append = false;
+        cmd->redirects->is_input = true;
+        cmd->redirects->is_output = false;
     }
 }
 
 void init_heredok(t_token_type inp, t_command *cmd)
 {
-    if (!cmd->input)
+    if (!cmd->redirects)
     {
-        cmd->input = malloc(sizeof(t_redirect));
-        if (!cmd->input)
+        cmd->redirects = malloc(sizeof(t_redirect));
+        if (!cmd->redirects)
             return;
     }
+    cmd->redirects->file = NULL;
     if (inp == TOKEN_REDIR_HEREDOC)
     {
-        cmd->input->is_heredoc = true;
-        cmd->input->append = false;
-        cmd->input->is_output = false;
+        cmd->redirects->is_heredoc = true;
+        cmd->redirects->is_append = false;
+        cmd->redirects->is_input = false;
+        cmd->redirects->is_output = false;
     }
 }
 void init_append(t_token_type inp, char *file, t_command *cmd)
 {
-    if (!cmd->input)
+    if (!cmd->redirects)
     {
-        cmd->input = malloc(sizeof(t_redirect));
-        if (!cmd->input)
+        cmd->redirects = malloc(sizeof(t_redirect));
+        if (!cmd->redirects)
             return;
     }
 
-    cmd->input->file = ft_strdup(file);
+    cmd->redirects->file = ft_strdup(file);
 
-    if(inp == TOKEN_REDIR_IN)
+    if(inp == TOKEN_REDIR_APPEND)
     {
-        cmd->input->is_heredoc = false;
-        cmd->input->append = true;
-        cmd->input->is_output = false;
+        cmd->redirects->is_heredoc = false;
+        cmd->redirects->is_output = false;
+        cmd->redirects->is_input = false;
+        cmd->redirects->is_append = true;
     }
 }
 void init_redir_out(t_token_type inp, char *file, t_command *cmd)
 {
-        if (!cmd->input)
+        if (!cmd->redirects)
         {
-            cmd->input = malloc(sizeof(t_redirect));
-            if (!cmd->input)
+            cmd->redirects = malloc(sizeof(t_redirect));
+            if (!cmd->redirects)
                 return;
         }
     
-        cmd->input->file = ft_strdup(file);
+        cmd->redirects->file = ft_strdup(file);
     
-        if(inp == TOKEN_REDIR_IN)
+        if(inp == TOKEN_REDIR_OUT)
         {
-            cmd->input->is_heredoc = false;
-            cmd->input->append = true;
-            cmd->input->is_output = false;
+            cmd->redirects->is_heredoc = false;
+            cmd->redirects->is_append = false;
+            cmd->redirects->is_input = false;
+            cmd->redirects->is_output = true;
         }
    
 }
@@ -418,15 +453,29 @@ t_command *create_parser(t_parser *parser)
         cmd->command = ft_strdup(parser->word);
         while (parser && parser->type != TOKEN_PIPE)
         {
-            cmd->args[j] = ft_strdup(parser->word);
-            if(parser->type == TOKEN_REDIR_HEREDOC)
-                init_heredok(parser->type, cmd);
-            else if(parser->type == TOKEN_REDIR_APPEND)
+
+            if(parser->type == TOKEN_REDIR_HEREDOC) // <<
+                init_heredok(parser->type, cmd);  
+            else if(parser->type == TOKEN_REDIR_APPEND) // >>
                 init_append(parser->type, parser->next->word, cmd);
-            else if(parser->type == TOKEN_REDIR_OUT)
+            else if(parser->type == TOKEN_REDIR_OUT)  //  >
+            {
                 init_redir_out(parser->type, parser->next->word, cmd);
-            else if(parser->next && (parser->next->type == TOKEN_REDIR_IN))
-                init_redirin(parser->word, parser->next->type, cmd);
+                parser = parser->next;
+            }
+                
+            else if(parser->next && (parser->next->type == TOKEN_REDIR_IN)) // <
+            {
+                init_redirin(cmd, parser->next->type, parser->next->next->word);
+                parser = parser->next;
+            }
+
+            cmd->args[j] = ft_strdup(parser->word);
+
+            if(parser->double_quotes)
+                cmd->double_qoutes = true;
+            else 
+                cmd->double_qoutes = false;
             j++;
             parser = parser->next;
         }
@@ -451,7 +500,7 @@ t_command *create_parser(t_parser *parser)
 t_command *create_command(t_parser *parser)
 {
     t_command *command = create_parser(parser);
-
+    command->exit_code = 0;
     free_list(parser);
     return command;
 }

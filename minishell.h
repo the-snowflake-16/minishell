@@ -8,7 +8,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdbool.h>
-
 #include <readline/readline.h>
 #include <readline/history.h>
 
@@ -20,7 +19,10 @@ typedef enum e_token_type {
     TOKEN_REDIR_OUT,    //  >
     TOKEN_REDIR_APPEND, // >>
     TOKEN_REDIR_HEREDOC, // <<
+    TOKEN_SINGLE_QUOTES,
+    TOKEN_DOUBLE_QUOTES,
 } t_token_type;
+
 
 typedef struct s_token
 {
@@ -33,8 +35,7 @@ typedef struct s_parser
     char *word;
     t_token_type type;
     struct s_parser *next;
-    int single_quotes;
-    int double_quotes;
+    bool double_quotes;
 } t_parser;
 
 typedef struct s_env
@@ -47,19 +48,22 @@ typedef struct s_env
 } t_env;
 
 typedef struct s_redirect {
-    char *file;       // Куда/откуда перенаправляем (имя файла)
-    bool is_output;   // Это выход (> или >>) или вход (< или <<)?
-    bool append;      // Дописывать (>>) или перезаписать (>)?
-    bool is_heredoc;  // Это специальный ввод << (heredoc)?
-    // char *delimiter;  // Разделитель для heredoc (например, "EOF")
+    char *file;
+    bool is_input;    // для <
+    bool is_output;   // для >
+    bool is_append;   // для >>
+    bool is_heredoc;  // для <<
+    char *delimiter;
 } t_redirect;
 
 typedef struct s_command {
+    // t_parser *parser;
     char *command;
-    char **args;           // Аргументы команды (например, ["ls", "-la"])
-    t_redirect *input;     // Входной редирект (< или <<)
-    t_redirect *output;    // Выходной редирект (> или >>)
-    struct s_command *next; // Следующая команда (для пайпов)
+    char **args;
+    t_redirect *redirects;  // список редиректов
+    struct s_command *next;
+    bool double_qoutes;
+    int exit_code;
 } t_command;
 
 // token_utils.c
@@ -88,7 +92,7 @@ void print_list(t_parser *parser);
 t_command *create_command(t_parser *parser);
 void print_command(t_command *cmd);
 void free_comand(t_command *command);
-
+char *get_parametr(char *s);
 
 // env.c
 t_env *init_env(char **s);
@@ -122,4 +126,11 @@ int check_str_for_export_add_after_equal(char *s);
 void export_create(t_env *my_env, char *s);
 void unset(t_env **my_env, char *s);
 
+// executions.c
+void execute_pipeline(t_command *cmd, t_env *my_env);
+int redirect(const char *filename, char **args);
+int redirect_append(const char *file, char **argv) ;
+
+// main.c
+void cmp_inpu(t_command *command, t_env *my_env);
 #endif

@@ -94,24 +94,40 @@ void ft_free_array(char **arr)
     }
     free(arr);
 }
-
 void start_execve(char **ss, t_env *my_env)
 {
     char **envp = t_env_to_envp(my_env);
+    if (ft_strchr(*ss, '/') != NULL)
+    {
+        pid_t pid = fork();
+        if (pid == 0) {
+            execve(*ss, ss, envp);
+            perror("execve"); 
+            exit(1);
+        } else if (pid > 0) {
+            int status;
+            waitpid(pid, &status, 0);
+        } else {
+            perror("fork");
+        }
+        free_envp(envp);
+        return;
+    }
+
     char *path = get_path_from_env(my_env);
     char **paths = ft_split(path, ':');
-    
+    bool found = false;
+
     for (int i = 0; paths[i]; i++) {
         char *full_path = ft_strjoin_with_slash(paths[i], *ss);
         if (access(full_path, X_OK) == 0) {
-            printf("%s\n", full_path);
+            found = true;
             pid_t pid = fork();
             if (pid == 0) {
                 execve(full_path, ss, envp);
                 perror("execve"); 
                 exit(1);
             } else if (pid > 0) {
-
                 int status;
                 waitpid(pid, &status, 0);
             } else {
@@ -122,6 +138,10 @@ void start_execve(char **ss, t_env *my_env)
         }
         free(full_path);
     }
+
+    if (!found)
+        fprintf(stderr, "command not found: %s\n", *ss);
+
     free_envp(envp);
     ft_free_array(paths);
 }

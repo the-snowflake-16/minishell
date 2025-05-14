@@ -103,7 +103,7 @@ void assign_sorted_indexes(t_env *env)
         {
             if (tmp->index == -1)
             {
-                if (!min_node || strcmp(tmp->key, min_node->key) < 0)
+                if (!min_node || ft_strcmp(tmp->key, min_node->key) < 0)
                     min_node = tmp;
             }
             tmp = tmp->next;
