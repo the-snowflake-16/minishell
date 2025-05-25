@@ -111,7 +111,7 @@ t_env *add_left_right(char *s);
 int incorect_input(char *s);
 
 // execve.c
-int start_execve(char **ss, t_env *my_env);
+int start_execve(char **args, t_state *state);
 char **t_env_to_envp(t_env *env);
 
 // export_print.c

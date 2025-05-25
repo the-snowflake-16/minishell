@@ -61,13 +61,15 @@ int handle_exit(t_command *command, t_state *state) {
     exit(exit_code);
 }
 
-void ft_pwd(void) {
+int ft_pwd(void) {
     char path[4096];
     if (getcwd(path, sizeof(path)) != NULL) {
         printf("%s\n", path);
     } else {
         perror("pwd");
+        return 1;
     }
+    return 0;
 }
 
 
@@ -121,20 +123,21 @@ int is_builtin(const char *cmd) {
 }
 
 int handle_builtin(t_command *command, t_state *state) {
+    int exit_code;
     if (!ft_strcmp(command->command, "exit")) {
-        handle_exit(command, state);
+        exit_code = handle_exit(command, state);
     } 
     else if (!ft_strcmp(command->command, "pwd"))
-        ft_pwd();
+        exit_code = ft_pwd();
     else if (!ft_strcmp(command->command, "cd"))
     {
-        state->last_exit_code = change_cwd(command->args);
+        exit_code = change_cwd(command->args);
 
     }
         
     else if (!ft_strcmp(command->command, "export") && count_words_in_arr(command->args) > 1)
     {
-        state->last_exit_code = export_create(state->env, command);
+        exit_code = export_create(state->env, command);
     }
         
     else if (!ft_strcmp(command->command, "export"))
@@ -144,25 +147,25 @@ int handle_builtin(t_command *command, t_state *state) {
     else if (!ft_strcmp(command->command, "unset")) {
         if (!command->args[1])
         {
-            
+            exit_code = 0;
             // state->last_exit_code = 1;
         }
         else
-            state->last_exit_code = unset(&state->env, command->args[1]);
+            exit_code = unset(&state->env, command->args[1]);
     }
     else if (!ft_strcmp(command->command, "echo"))
     {
         // printf("%d\n", state->last_exit_code);
-        state->last_exit_code = echo(command);
+        exit_code = echo(command);
     }
-    return 1;
+    return exit_code;
 }
 
 void cmp_input(t_command *command, t_state *state) {
     if (command->command && is_builtin(command->command))
-        handle_builtin(command, state);
+        state->last_exit_code = handle_builtin(command, state);
     else if (command->command)
-        state->last_exit_code = start_execve(command->args, state->env);
+        state->last_exit_code = start_execve(command->args, state);
 }
 
 void start_token(char *input, t_state *state) {
@@ -175,6 +178,7 @@ void start_token(char *input, t_state *state) {
         t_command *command = create_command(parser_list);
         if (command) {
             // print_command(command);
+            // cmp_input(command, state);
             execute_pipeline(command, state);
             free_comand(command);
         }

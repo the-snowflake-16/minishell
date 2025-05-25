@@ -94,9 +94,9 @@ void ft_free_array(char **arr)
     }
     free(arr);
 }
-int start_execve(char **args, t_env *my_env)
+int start_execve(char **args, t_state *state)
 {
-    char **envp = t_env_to_envp(my_env);
+    char **envp = t_env_to_envp(state->env);
     int status = 127; // Default to "command not found"
 
     // If command is a direct path (contains '/')
@@ -122,7 +122,7 @@ int start_execve(char **args, t_env *my_env)
     }
 
     // Otherwise, search in PATH
-    char *path_var = get_path_from_env(my_env);
+    char *path_var = get_path_from_env(state->env);
     if (!path_var)
     {
         fprintf(stderr, "PATH variable not found\n");
@@ -167,5 +167,5 @@ int start_execve(char **args, t_env *my_env)
     ft_free_array(paths);
     free_envp(envp);
 
-    return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
+    return (state->last_exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : 1);
 }
