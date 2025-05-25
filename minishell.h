@@ -35,7 +35,7 @@ typedef struct s_parser
     char *word;
     t_token_type type;
     struct s_parser *next;
-    bool double_quotes;
+    bool single_quotes;
 } t_parser;
 
 typedef struct s_env
@@ -62,9 +62,14 @@ typedef struct s_command {
     char **args;
     t_redirect *redirects;  // список редиректов
     struct s_command *next;
-    bool double_qoutes;
+    bool single_qoutes;
     int exit_code;
 } t_command;
+
+typedef struct s_state {
+    t_env *env;
+    int last_exit_code;
+} t_state;
 
 // token_utils.c
 int count_words(char *s);
@@ -87,12 +92,13 @@ char	*filter(char *s);
 
 // create_list.c
 void free_list(t_parser *head);
-t_parser *create_list(char **ss, t_env *my_env);
+t_parser *create_list(char **ss, t_state *state);
 void print_list(t_parser *parser);
 t_command *create_command(t_parser *parser);
 void print_command(t_command *cmd);
 void free_comand(t_command *command);
 char *get_parametr(char *s);
+int first_quoter(char *s);
 
 // env.c
 t_env *init_env(char **s);
@@ -105,7 +111,7 @@ t_env *add_left_right(char *s);
 int incorect_input(char *s);
 
 // execve.c
-void start_execve(char **ss, t_env *my_env);
+int start_execve(char **ss, t_env *my_env);
 char **t_env_to_envp(t_env *env);
 
 // export_print.c
@@ -113,7 +119,7 @@ void export_print(t_env *my_env);
 int count_exported(t_env *my_env);
 
 // export_add.c
-void export_add(t_env *my_env, char *s);
+void export_add(t_env *my_env, t_command *command);
 t_env *find_key(t_env *my_env, char *s);
 int incorect_input_for_key(char *s);
 char *split_by_equal_key(char *s);
@@ -123,14 +129,15 @@ int check_key_in_env(t_env *my_env, char *s);
 int check_str_for_export_add_after_equal(char *s);
 
 // export_create.c
-void export_create(t_env *my_env, char *s);
-void unset(t_env **my_env, char *s);
+int export_create(t_env *my_env, t_command *command);
+int unset(t_env **my_env, char *s);
 
 // executions.c
-void execute_pipeline(t_command *cmd, t_env *my_env);
+void execute_pipeline(t_command *cmd, t_state *state);
 int redirect(const char *filename, char **args);
 int redirect_append(const char *file, char **argv) ;
 
 // main.c
-void cmp_inpu(t_command *command, t_env *my_env);
+void cmp_input(t_command *command, t_state *state);
+int handle_builtin(t_command *command, t_state *state);
 #endif

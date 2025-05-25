@@ -50,11 +50,11 @@ int	chech_symbol(char *s)
 		return (TOKEN_REDIR_OUT);
 	if (!ft_strcmp(s, "|"))
 		return (TOKEN_PIPE);
-    if(ft_strchr(s, '"'))
-    {
-        printf("find qoutes");
-        return(TOKEN_DOUBLE_QUOTES); 
-    }
+    // if(ft_strchr(s, '"'))
+    // {
+    //     printf("find qoutes");
+    //     return(TOKEN_DOUBLE_QUOTES); 
+    // }
   
 	return (TOKEN_WORD);
 }
@@ -134,63 +134,112 @@ char *get_parametr(char *s)
     res[i] = '\0';
     return res;
 }
-t_parser *create_list(char **ss, t_env *my_env)
+int first_quoter(char *s)
+{
+    int i = 0;
+    while (s[i])
+    {
+        if(s[i] == '\'')
+            return 1;
+        else if (s[i] == '"')
+        {
+            return 2;
+        }
+        
+        i++;
+    }
+    return 0;
+}
+char *strjoin_and_free(char *s1, const char *s2)
+{
+    char *new = ft_strjoin(s1, s2);
+    free(s1);
+    return new;
+}
+
+char *strjoin_and_free_char(char *s1, char c)
+{
+    char temp[2] = {c, '\0'};
+    return strjoin_and_free(s1, temp);
+}
+
+t_parser *create_list(char **ss, t_state *state)
 {
     int i = 0;
     t_parser *head = NULL;
     t_parser *current = NULL;
-    t_parser *new_node;
-    char *word;
 
     while (ss[i])
     {
-        if(ss[i][0] == '$' )
+        char *word = ss[i];
+        t_parser *new_node;
+        bool is_single_quote = ft_strchr(word, '\'') && first_quoter(word) == 1;
+        bool is_double_quote = ft_strchr(word, '"') && first_quoter(word) == 2;
+
+        if (is_single_quote)
         {
-            char *key = get_parametr(ss[i]);
-            if (check_key_in_env(my_env, key))
-            {
-                t_env *my_key = find_key(my_env, key);
-                word = ft_strdup(my_key->value);
-                new_node = creat_node(word);
-                new_node->double_quotes = false;
-                free(key);
-                free(word);
-            }
-            else if(ss[i][1], ss[i][1] == '?')
-            {
-                word = ft_strdup("0");
-                new_node = creat_node(word);
-                new_node->double_quotes = false;
-                free(key);
-                free(word);
-            }
-            else
-            {
-                word = ft_strdup("\0");
-                new_node = creat_node(word);
-                new_node->double_quotes = false;
-                free(key);
-                free(word);
-            }
-        }
-        else if (ft_strchr(ss[i], '\''))
-        {
-            word = delete_quotes(ss[i], '\'');
-            new_node = creat_node(word);
-            new_node->double_quotes = false;
-            free(word);
-        }
-        else if (ft_strchr(ss[i], '"'))
-        {
-            word = delete_quotes(ss[i], '"');
-            new_node = creat_node(word);
-            new_node->double_quotes = true;
-            free(word);
+            // Remove single quotes but skip expansion
+            char *clean = delete_quotes(word, '\'');
+            new_node = creat_node(clean);
+            free(clean);
         }
         else
         {
-            new_node = creat_node(ss[i]);
-            new_node->double_quotes = false;
+            // Remove double quotes or duplicate as-is
+            char *clean = is_double_quote ? delete_quotes(word, '"') : ft_strdup(word);
+
+            // Expand $VAR only if not single-quoted
+            char *expanded = ft_calloc(1, 1);
+            int j = 0;
+            while (clean[j])
+            {
+                if (clean[j] == '$')
+                {
+                    j++;
+                    if (clean[j] == '\0')
+                    {
+                        expanded = strjoin_and_free(expanded, "$");
+                        break;
+                    }
+
+                    if (clean[j] == '?')
+                    {
+                        // Optional: insert exit status
+                        // sstate->last_exit_code = 0;
+                        char *exit_str = ft_itoa(state->last_exit_code);
+                        expanded = strjoin_and_free(expanded, exit_str);
+                        free(exit_str);
+                        j++;
+                    }
+                    else
+                        {
+                        int start = j;
+                        while (ft_isalnum(clean[j]) || clean[j] == '_')
+                            j++;
+                        if (j > start)
+                        {
+                            char *key = ft_substr(clean, start, j - start);
+                            t_env *found = find_key(state->env, key);
+                            if (found)
+                                expanded = strjoin_and_free(expanded, found->value);
+                            free(key);
+                        }
+                        else
+                        {
+                            expanded = strjoin_and_free_char(expanded, '$');
+                        }
+                    }
+                }
+                else
+                {
+                    expanded = strjoin_and_free_char(expanded, clean[j]);
+                    j++;
+                }
+            }
+
+            new_node = creat_node(expanded);
+            free(expanded);
+            free(clean);
         }
 
         if (!append_node(&head, &current, new_node))
@@ -198,8 +247,10 @@ t_parser *create_list(char **ss, t_env *my_env)
 
         i++;
     }
+
     return head;
 }
+
 
 int count_argv(char **s, int position)
 {
@@ -429,57 +480,74 @@ t_command *create_parser(t_parser *parser)
 {
     t_command *head = NULL;
     t_command *prev = NULL;
-    t_parser *tmp = parser;
-    int i = 0;
 
-    while (tmp)
+    while (parser)
     {
-        i = 0;
+        // Подсчёт количества аргументов до пайпа
+        t_parser *tmp = parser;
+        int i = 0;
         while (tmp && tmp->type != TOKEN_PIPE)
         {
             i++;
             tmp = tmp->next;
         }
 
+        // Создание новой команды
         t_command *cmd = malloc(sizeof(t_command));
         if (!cmd)
             return NULL;
         init_comand(cmd);
+
         cmd->args = malloc(sizeof(char *) * (i + 1));
         if (!cmd->args)
             return NULL;
 
         int j = 0;
-        cmd->command = ft_strdup(parser->word);
         while (parser && parser->type != TOKEN_PIPE)
         {
-
-            if(parser->type == TOKEN_REDIR_HEREDOC) // <<
-                init_heredok(parser->type, cmd);  
-            else if(parser->type == TOKEN_REDIR_APPEND) // >>
+            // if (parser->type == TOKEN_REDIR_HEREDOC) // <<
+            // {
+            //     init_heredok(parser->next->word, cmd);
+            //     parser = parser->next->next;
+            //     continue;
+            // }
+            if (parser->type == TOKEN_REDIR_APPEND) // >>
+            {
                 init_append(parser->type, parser->next->word, cmd);
-            else if(parser->type == TOKEN_REDIR_OUT)  //  >
+                parser = parser->next->next;
+                continue;
+            }
+            else if (parser->type == TOKEN_REDIR_OUT) // >
             {
                 init_redir_out(parser->type, parser->next->word, cmd);
-                parser = parser->next;
+                parser = parser->next->next;
+                continue;
             }
-                
-            else if(parser->next && (parser->next->type == TOKEN_REDIR_IN)) // <
+            else if (parser->type == TOKEN_REDIR_IN) // <
             {
-                init_redirin(cmd, parser->next->type, parser->next->next->word);
+                init_redirin(cmd, parser->type, parser->next->word);
                 parser = parser->next;
+                // continue;
             }
 
-            cmd->args[j] = ft_strdup(parser->word);
+            // Аргументы команды (включая саму команду)
+            if (parser->word != NULL)
+            {
+                cmd->args[j] = ft_strdup(parser->word);
+                if (parser->single_quotes)
+                    cmd->single_qoutes = true;
+                else
+                    cmd->single_qoutes = false;
+                j++;
+            }
 
-            if(parser->double_quotes)
-                cmd->double_qoutes = true;
-            else 
-                cmd->double_qoutes = false;
-            j++;
             parser = parser->next;
         }
         cmd->args[j] = NULL;
+
+        // Устанавливаем команду, если аргументы не пусты
+        if (cmd->args[0])
+            cmd->command = ft_strdup(cmd->args[0]);
 
         if (!head)
             head = cmd;
@@ -487,20 +555,20 @@ t_command *create_parser(t_parser *parser)
             prev->next = cmd;
         prev = cmd;
 
-        if (parser)
+        if (parser && parser->type == TOKEN_PIPE)
             parser = parser->next;
-        if (tmp)
-            tmp = tmp->next;
     }
-    free(tmp);
+
     return head;
 }
+
 
 
 t_command *create_command(t_parser *parser)
 {
     t_command *command = create_parser(parser);
-    command->exit_code = 0;
+    // if (command)
+    //     command->exit_code = 0;
     free_list(parser);
     return command;
 }

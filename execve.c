@@ -94,54 +94,78 @@ void ft_free_array(char **arr)
     }
     free(arr);
 }
-void start_execve(char **ss, t_env *my_env)
+int start_execve(char **args, t_env *my_env)
 {
     char **envp = t_env_to_envp(my_env);
-    if (ft_strchr(*ss, '/') != NULL)
+    int status = 127; // Default to "command not found"
+
+    // If command is a direct path (contains '/')
+    if (ft_strchr(args[0], '/'))
     {
         pid_t pid = fork();
-        if (pid == 0) {
-            execve(*ss, ss, envp);
-            perror("execve"); 
-            exit(1);
-        } else if (pid > 0) {
-            int status;
+        if (pid == 0)
+        {
+            execve(args[0], args, envp);
+            perror("execve");
+            exit(EXIT_FAILURE); // Exit from child on failure
+        }
+        else if (pid > 0)
+        {
             waitpid(pid, &status, 0);
-        } else {
+        }
+        else
+        {
             perror("fork");
         }
         free_envp(envp);
-        return;
+        return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
     }
 
-    char *path = get_path_from_env(my_env);
-    char **paths = ft_split(path, ':');
-    bool found = false;
+    // Otherwise, search in PATH
+    char *path_var = get_path_from_env(my_env);
+    if (!path_var)
+    {
+        fprintf(stderr, "PATH variable not found\n");
+        free_envp(envp);
+        return status;
+    }
 
-    for (int i = 0; paths[i]; i++) {
-        char *full_path = ft_strjoin_with_slash(paths[i], *ss);
-        if (access(full_path, X_OK) == 0) {
-            found = true;
+    char **paths = ft_split(path_var, ':');
+    bool executed = false;
+
+    for (int i = 0; paths[i]; i++)
+    {
+        char *full_path = ft_strjoin_with_slash(paths[i], args[0]);
+        if (access(full_path, X_OK) == 0)
+        {
             pid_t pid = fork();
-            if (pid == 0) {
-                execve(full_path, ss, envp);
-                perror("execve"); 
-                exit(1);
-            } else if (pid > 0) {
-                int status;
+            if (pid == 0)
+            {
+                execve(full_path, args, envp);
+                perror("execve");
+                exit(EXIT_FAILURE);
+            }
+            else if (pid > 0)
+            {
                 waitpid(pid, &status, 0);
-            } else {
+            }
+            else
+            {
                 perror("fork");
             }
+            executed = true;
             free(full_path);
             break;
         }
         free(full_path);
     }
 
-    if (!found)
-        fprintf(stderr, "command not found: %s\n", *ss);
+    if (!executed)
+        fprintf(stderr, "minishell: command not found: %s\n", args[0]);
+        
 
-    free_envp(envp);
     ft_free_array(paths);
+    free_envp(envp);
+
+    return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
 }

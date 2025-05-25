@@ -26,20 +26,28 @@ int incorect_input_for_key(char *s)
 char *split_by_equal_key(char *s)
 {
     int i = 0;
-    while(s[i] != '=')
-    {
+    while (s[i] && s[i] != '=')
         i++;
-    }
+
+    if (s[i] != '=' || i == 0) // нет '=', или пустой ключ
+        return NULL;
+
     char *res = malloc(sizeof(char) * (i + 1));
-    i = 0;
-    while (s[i] != '=')
-    {
-        res[i] = s[i];
-        i++;
+    if (!res)
+        return NULL;
+
+    for (int j = 0; j < i; j++) {
+        if (!ft_isalnum(s[j])) {
+            free(res);
+            return NULL;
+        }
+        res[j] = s[j];
     }
+
     res[i] = '\0';
-    return (res);
+    return res;
 }
+
 char *split_by_equal(char *s)
 {
     int count = 0;
@@ -87,17 +95,22 @@ char *delete_quotes_export(char *s)
     res[i] = '\0';
     return res;
 }
-void export_add(t_env *my_env, char *s)
+void export_add(t_env *my_env, t_command *command)
 {
-    if(!incorect_input_for_key(s))
+    if(!incorect_input_for_key(command->args[1]))
     {
-        char *key = split_by_equal_key(s);
-        char *word;
-        if(check_str_for_export_add_after_equal(s))
+        char *key = split_by_equal_key(command->args[1]);
+        if(!key)
         {
-            word = split_by_equal(s);
-            printf("%s\n", word);
-            printf("%zu\n", ft_strlen(word));
+            printf("not a valid identifiet\n");
+            command->exit_code = 1;
+        }
+        char *word;
+        if(check_str_for_export_add_after_equal(command->args[1]))
+        {
+            word = split_by_equal(command->args[1]);
+            // printf("%s\n", word);
+            // printf("%zu\n", ft_strlen(word));
             if((word[0] == '\'' || word[0] == '"') && word[0] == word[ft_strlen(word) -1])
             {
                 char *tmp = delete_quotes_export(word);
@@ -117,10 +130,10 @@ void export_add(t_env *my_env, char *s)
         {
             if(!ft_strcmp(my_env->key, tmp->key))
             {
-                printf("%s\n", my_env->key);
-                printf("%s\n", my_env->value);
+                // printf("%s\n", my_env->key);
+                // printf("%s\n", my_env->value);
                 free(my_env->value);
-                if(check_str_for_export_add_after_equal(s))
+                if(check_str_for_export_add_after_equal(command->args[1]))
                 {
 
                     // char *res = split_by_equal()
@@ -130,7 +143,7 @@ void export_add(t_env *my_env, char *s)
                     // fix_word(word);
                     my_env->value = ft_strdup(word);
                     // new_env->value = ft_strdup("some");
-                    printf("%s\n", my_env->value);
+                    // printf("%s\n", my_env->value);
                 }
                 else
                     my_env->value = ft_strdup("");
@@ -140,10 +153,13 @@ void export_add(t_env *my_env, char *s)
             my_env = my_env->next;
         }
         free(key);
-        if(check_str_for_export_add_after_equal(s))
+        if(check_str_for_export_add_after_equal(command->args[1]))
             free(word);
     }
-
+    else{
+        printf(" not a valid identifier\n");
+        command->exit_code = 1;
+    }
     // printf("%s\n", tmp->key);
     // printf("%s\n", word);
 

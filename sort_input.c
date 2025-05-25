@@ -30,7 +30,7 @@ char	*filter(char *s)
 	int		modified;
 	int		len;
 	char	*new_str;
-
+	int checker = 0;
 	if (!s)
 		return (NULL);
 	result = strdup(s);
@@ -41,7 +41,9 @@ char	*filter(char *s)
 		len = strlen(result);
 		for (int i = 0; i < len; i++)
 		{
-			if (result[i] == '|' || result[i] == '>' || result[i] == '<')
+			if (result[i] == '\'' || result[i] == '"')
+				checker = 1;
+			if ((result[i] == '|' || result[i] == '>' || result[i] == '<') && !checker)
 			{
 				if (i > 0 && result[i - 1] != ' ')
 				{

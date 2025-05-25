@@ -32,24 +32,21 @@
 //     }
 //     return 0;
 // }
-int redirect_output(const char *file, char **argv)
+int redirect_output(const char *file)
 {
-    int file_fd = open(file, O_WRONLY | O_CREAT| O_TRUNC, 0666);
-    if(file_fd < 0)
+    int file_fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (file_fd < 0)
     {
-        perror("open");
+        perror("open output");
         return 1;
     }
-    // int saved_stdout = dup(file_fd);
-    dup2(file_fd, 1);
-    int i = 1;
-    while (argv[i])
+    if (dup2(file_fd, STDOUT_FILENO) < 0)
     {
-        write(1, argv[i], ft_strlen(argv[i]));
-        i++;
+        perror("dup2 output");
+        close(file_fd);
+        return 1;
     }
     close(file_fd);
-    // close(saved_stdout);
     return 0;
 }
 int redirect_input(const char *file)
@@ -58,64 +55,107 @@ int redirect_input(const char *file)
     if (fd < 0)
     {
         perror("open input");
-        exit(1);
+        return 1;
     }
-    dup2(fd, 0);
+    if (dup2(fd, STDIN_FILENO) < 0)
+    {
+        perror("dup2 input");
+        close(fd);
+        return 1;
+    }
     close(fd);
     return 0;
 }
+int is_parent_builtin(const char *cmd)
+{
+    return (
+        !ft_strcmp(cmd, "cd") ||
+        !ft_strcmp(cmd, "export") ||
+        !ft_strcmp(cmd, "unset") ||
+        !ft_strcmp(cmd, "exit")
+        // !ft_strcmp(cmd, "echo")
+    );
+}
 
-void execute_pipeline(t_command *cmd, t_env *my_env)
+void execute_pipeline(t_command *cmd, t_state *state)
 {
     int fd[2];
-    int in = STDIN_FILENO;
-    pid_t pid;
+    int in_fd = STDIN_FILENO;
 
     while (cmd)
     {
-        pipe(fd); // создаём пайп
+        int has_next = (cmd->next != NULL);
 
-        pid = fork();
-        if (pid == 0)
+        if (has_next && pipe(fd) < 0)
         {
-            // --- Дочерний процесс ---
-
-            // 1. Редирект входа
-            if (cmd->redirects && cmd->redirects->is_input)
-            {
-                // printf("%s\n", cmd->redirects->file);
-                redirect_input(cmd->redirects->file);
-
-            }
-
-            // else if (in != STDIN_FILENO)
-            //     dup2(in, STDIN_FILENO);
-
-            // 2. Редирект вывода
-            if (cmd->redirects && cmd->redirects->is_output)
-                redirect_output(cmd->redirects->file, cmd->args);
-            else if (cmd->next)
-                dup2(fd[1], STDOUT_FILENO);
-
-            // 3. Закрываем лишние дескрипторы
-            close(fd[0]);
-            close(fd[1]);
-
-            // 4. Выполняем команду
-            cmp_inpu(cmd, my_env);
-            exit(1); // exec не должен возвращать
+            perror("pipe");
+            return;
         }
 
-        // --- Родительский процесс ---
+        if (is_parent_builtin(cmd->command) && !has_next)
+        {
+            // Redirection in parent for single built-in (e.g., "cd > out.txt" is weird but possible)
+            if (cmd->redirects)
+            {
+                if (cmd->redirects->is_input && redirect_input(cmd->redirects->file))
+                {
+                    state->last_exit_code = 1;
+                    return;
+                }
+                if (cmd->redirects->is_output && redirect_output(cmd->redirects->file))
+                {
+                    state->last_exit_code = 1;
+                    return;
+                }
+            }
+            state->last_exit_code = handle_builtin(cmd, state);
+        }
+        else
+        {
+            pid_t pid = fork();
+            if (pid < 0)
+            {
+                perror("fork");
+                return;
+            }
+            else if (pid == 0)
+            {
+                // Child
 
-        waitpid(pid, NULL, 0); // можно вынести за пределы цикла, если нужен параллелизм
-        close(fd[1]);
-        if (in != STDIN_FILENO)
-            close(in);
-        in = fd[0]; // передаём выход текущего процесса как вход для следующего
+                if (in_fd != STDIN_FILENO)
+                    dup2(in_fd, STDIN_FILENO);
+
+                if (has_next)
+                    dup2(fd[1], STDOUT_FILENO);
+
+                if (cmd->redirects)
+                {
+                    if (cmd->redirects->is_input && redirect_input(cmd->redirects->file))
+                        exit(1);
+                    if (cmd->redirects->is_output && redirect_output(cmd->redirects->file))
+                        exit(1);
+                }
+
+                if (has_next)
+                    close(fd[0]);
+                if (in_fd != STDIN_FILENO)
+                    close(in_fd);
+
+                cmp_input(cmd, state);
+                exit(state->last_exit_code);
+            }
+            else
+            {
+                // Parent
+                waitpid(pid, &state->last_exit_code, 0);
+                if (has_next)
+                    close(fd[1]);
+                if (in_fd != STDIN_FILENO)
+                    close(in_fd);
+                in_fd = has_next ? fd[0] : STDIN_FILENO;
+            }
+        }
+
         cmd = cmd->next;
     }
 }
-
-
-
