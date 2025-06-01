@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdbool.h>
+#include <signal.h>
+#include <stdio.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
@@ -111,8 +113,9 @@ t_env *add_left_right(char *s);
 int incorect_input(char *s);
 
 // execve.c
-int start_execve(char **args, t_state *state);
+void start_execve(char **args, t_state *state);
 char **t_env_to_envp(t_env *env);
+int run_command(char **args, t_state *state);
 
 // export_print.c
 void export_print(t_env *my_env);
@@ -134,10 +137,12 @@ int unset(t_env **my_env, char *s);
 
 // executions.c
 void execute_pipeline(t_command *cmd, t_state *state);
-int redirect(const char *filename, char **args);
-int redirect_append(const char *file, char **argv) ;
 
 // main.c
 void cmp_input(t_command *command, t_state *state);
 int handle_builtin(t_command *command, t_state *state);
+
+// signals.c 
+void sigint_handler(int signo);
+void sigquit_handler(int signo);
 #endif

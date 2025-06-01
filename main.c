@@ -33,7 +33,7 @@ int is_numeric(const char *str) {
 
 int handle_exit(t_command *command, t_state *state) {
     int argc = count_words_in_arr(command->args);
-    printf("exit\n");
+    // printf("exit\n");
 
     if (argc == 1) {
         free_comand(command);
@@ -101,16 +101,28 @@ int change_cwd(char **swd) {
 
 int echo(t_command *command) {
     int i = 1;
+    int newline = 1;
+
+    // Check for -n
+    if (command->args[1] && !ft_strcmp(command->args[1], "-n")) {
+        newline = 0;
+        i = 2; // skip -n
+    }
+
     while (command->args[i]) {
         if (command->single_qoutes) {
-            // При одинарных кавычках ничего не интерпретируем
+            printf("%s", command->args[i]);
+        } else {
             printf("%s", command->args[i]);
         }
         if (command->args[i + 1])
             printf(" ");
         i++;
     }
-    printf("\n");
+
+    if (newline)
+        printf("\n");
+
     return 0;
 }
 
@@ -165,20 +177,25 @@ void cmp_input(t_command *command, t_state *state) {
     if (command->command && is_builtin(command->command))
         state->last_exit_code = handle_builtin(command, state);
     else if (command->command)
-        state->last_exit_code = start_execve(command->args, state);
+        start_execve(command->args, state);
 }
 
 void start_token(char *input, t_state *state) {
     if (!incorect_input(input)) {
+        // if (!ft_strcmp(input, "<") || !ft_strcmp(input, "<<") || !ft_strcmp(input, ">") || !ft_strcmp(input, ">>") || !ft_strcmp(input, "|"))
+        // {    printf("error\n");
+        //     return;
+        // }
         char *sort_input = filter(input);
         t_token *token = tokenize(sort_input);
         free(sort_input);
         // check_arr_of_token(token);
         t_parser *parser_list = create_list(token->token_arr, state);
         t_command *command = create_command(parser_list);
-        if (command) {
-            // print_command(command);
-            // cmp_input(command, state);
+        // print_command(command);
+        if (command != NULL) {
+            // if(command->args[0] && !command->args[1])
+            //     printf("one\n");
             execute_pipeline(command, state);
             free_comand(command);
         }
@@ -200,7 +217,8 @@ void init_minishell(char **env) {
     t_state state;
     state.env = init_env(env);
     state.last_exit_code = 0;
-
+    signal(SIGINT, sigint_handler);
+    signal(SIGQUIT, SIG_IGN);
     char *input;
     while (1) {
         input = readline("minishell❄️   ");
@@ -215,6 +233,7 @@ void init_minishell(char **env) {
 int main(int argc, char **argv, char **env) {
     (void)argv;
     (void)argc;
+
     init_minishell(env);
     return 0;
 }

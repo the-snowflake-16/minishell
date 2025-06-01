@@ -66,8 +66,103 @@ int redirect_input(const char *file)
     close(fd);
     return 0;
 }
+int redirect_append(const char *file)
+{
+    int fd = open(file, O_WRONLY | O_CREAT | O_APPEND, 0666);
+    if (fd < 0)
+    {
+        perror("open append");
+        return 1;
+    }
+    if (dup2(fd, STDOUT_FILENO) < 0)
+    {
+        perror("dup2 append");
+        close(fd);
+        return 1;
+    }
+    close(fd);
+    return 0;
+}
+// volatile sig_atomic_t g_heredoc_interrupted = 0;
+
+// #include <signal.h>
+// #include <unistd.h>
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <string.h>
+// #include <readline/readline.h>
+
+volatile sig_atomic_t g_heredoc_interrupted = 0;
+
+void heredoc_sigint_handler(int sig)
+{
+    (void)sig;
+    g_heredoc_interrupted = 1;
+    write(1, "\n", 1);
+    rl_replace_line("", 0);
+    rl_done = 1; // Завершает readline
+}
+
+
+int heredok(const char *delimiter)
+{
+    int pipe_fd[2];
+    pid_t pid;
+
+    if (pipe(pipe_fd) == -1)
+        return -1;
+
+    pid = fork();
+    if (pid == -1)
+        return -1;
+
+    if (pid == 0)
+    {
+        // child process — heredoc input
+        signal(SIGINT, heredoc_sigint_handler);
+
+        char *line;
+        while (1)
+        {
+            line = readline("> ");
+            if (!line)
+                exit(0); // Ctrl+D
+
+            if (!strcmp(line, delimiter))
+            {
+                free(line);
+                exit(0); // Success
+            }
+
+            write(pipe_fd[1], line, strlen(line));
+            write(pipe_fd[1], "\n", 1);
+            free(line);
+        }
+    }
+    else
+    {
+        // parent process
+        int status;
+        close(pipe_fd[1]); // only read
+
+        waitpid(pid, &status, 0);
+
+        if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT)
+        {
+            close(pipe_fd[0]);
+            return -1; // heredoc interrupted
+        }
+        return pipe_fd[0]; // descriptor to read
+    }
+}
+
+
+
+
 int is_parent_builtin(const char *cmd)
 {
+    if (!cmd)
+        return 0;
     return (
         !ft_strcmp(cmd, "cd") ||
         !ft_strcmp(cmd, "export") ||
@@ -79,6 +174,7 @@ int is_parent_builtin(const char *cmd)
 
 void execute_pipeline(t_command *cmd, t_state *state)
 {
+    int exit_status;
     int fd[2];
     int in_fd = STDIN_FILENO;
 
@@ -86,27 +182,38 @@ void execute_pipeline(t_command *cmd, t_state *state)
     {
         int has_next = (cmd->next != NULL);
 
+        // Create pipe for next command if needed
         if (has_next && pipe(fd) < 0)
         {
             perror("pipe");
             return;
         }
 
-        if (is_parent_builtin(cmd->command) && !has_next)
+        // Handle heredoc before forking
+        int heredoc_fd = -1;
+        if (cmd->redirects && cmd->redirects->is_heredoc)
         {
-            // Redirection in parent for single built-in (e.g., "cd > out.txt" is weird but possible)
+            heredoc_fd = heredok(cmd->redirects->delimiter);
+            free(cmd->redirects->delimiter);
+            if (heredoc_fd == -1)
+            {
+                free(cmd->redirects->delimiter);
+                return; // heredok error
+            }
+
+        }
+
+        // If parent builtin and last command
+        if (cmd->command && is_parent_builtin(cmd->command) && !has_next)
+        {
             if (cmd->redirects)
             {
                 if (cmd->redirects->is_input && redirect_input(cmd->redirects->file))
-                {
-                    state->last_exit_code = 1;
                     return;
-                }
                 if (cmd->redirects->is_output && redirect_output(cmd->redirects->file))
-                {
-                    state->last_exit_code = 1;
                     return;
-                }
+                if (cmd->redirects->is_append && redirect_append(cmd->redirects->file))
+                    return;
             }
             state->last_exit_code = handle_builtin(cmd, state);
         }
@@ -116,14 +223,24 @@ void execute_pipeline(t_command *cmd, t_state *state)
             if (pid < 0)
             {
                 perror("fork");
+                if (heredoc_fd != -1)
+                    close(heredoc_fd);
                 return;
             }
             else if (pid == 0)
             {
                 // Child
 
-                if (in_fd != STDIN_FILENO)
+                // If heredoc, redirect stdin from heredoc pipe
+                if (heredoc_fd != -1)
+                {
+                    dup2(heredoc_fd, STDIN_FILENO);
+                    close(heredoc_fd);
+                }
+                else if (in_fd != STDIN_FILENO)
+                {
                     dup2(in_fd, STDIN_FILENO);
+                }
 
                 if (has_next)
                     dup2(fd[1], STDOUT_FILENO);
@@ -133,6 +250,8 @@ void execute_pipeline(t_command *cmd, t_state *state)
                     if (cmd->redirects->is_input && redirect_input(cmd->redirects->file))
                         exit(1);
                     if (cmd->redirects->is_output && redirect_output(cmd->redirects->file))
+                        exit(1);
+                    if (cmd->redirects->is_append && redirect_append(cmd->redirects->file))
                         exit(1);
                 }
 
@@ -147,7 +266,13 @@ void execute_pipeline(t_command *cmd, t_state *state)
             else
             {
                 // Parent
-                waitpid(pid, &state->last_exit_code, 0);
+                waitpid(pid, &exit_status, 0);
+                if (WIFEXITED(exit_status))
+                    state->last_exit_code = WEXITSTATUS(exit_status);
+
+                if (heredoc_fd != -1)
+                    close(heredoc_fd);
+
                 if (has_next)
                     close(fd[1]);
                 if (in_fd != STDIN_FILENO)

@@ -309,6 +309,8 @@ void print_redirect(t_redirect *redir)
     printf("    is_input: %s\n", redir->is_input ? "true" : "false");
     printf("    append: %s\n", redir->is_append ? "true" : "false");
     printf("    is_heredoc: %s\n", redir->is_heredoc ? "true" : "false");
+    if(redir->is_heredoc)
+        printf("delimiter %s\n", redir->delimiter);
 }
 
 void print_command(t_command *cmd)
@@ -387,6 +389,8 @@ void free_comand(t_command *command)
 
         if (command->redirects)
         {
+            // if(command->redirects->delimiter)
+            //     free(command->redirects->delimiter);
             if (command->redirects->file)
                 free(command->redirects->file);
             free(command->redirects);
@@ -419,7 +423,7 @@ void init_redirin(t_command *cmd, t_token_type inp, char *file)
     }
 }
 
-void init_heredok(t_token_type inp, t_command *cmd)
+void init_heredok(char *delimiter, t_command *cmd)
 {
     if (!cmd->redirects)
     {
@@ -428,13 +432,13 @@ void init_heredok(t_token_type inp, t_command *cmd)
             return;
     }
     cmd->redirects->file = NULL;
-    if (inp == TOKEN_REDIR_HEREDOC)
-    {
-        cmd->redirects->is_heredoc = true;
-        cmd->redirects->is_append = false;
-        cmd->redirects->is_input = false;
-        cmd->redirects->is_output = false;
-    }
+
+    cmd->redirects->is_heredoc = true;
+    cmd->redirects->is_append = false;
+    cmd->redirects->is_input = false;
+    cmd->redirects->is_output = false;
+    cmd->redirects->delimiter = ft_strdup(delimiter);
+
 }
 void init_append(t_token_type inp, char *file, t_command *cmd)
 {
@@ -476,6 +480,20 @@ void init_redir_out(t_token_type inp, char *file, t_command *cmd)
    
 }
 
+bool cheak_token(t_parser *parser)
+{
+    
+    while (parser)
+    {
+        if (!ft_strcmp(parser->word, "|") && parser->next == NULL)
+        {
+            perror("error");
+            return false;
+        }
+        parser = parser->next;
+    }
+    return true;
+}
 t_command *create_parser(t_parser *parser)
 {
     t_command *head = NULL;
@@ -505,13 +523,20 @@ t_command *create_parser(t_parser *parser)
         int j = 0;
         while (parser && parser->type != TOKEN_PIPE)
         {
-            // if (parser->type == TOKEN_REDIR_HEREDOC) // <<
-            // {
-            //     init_heredok(parser->next->word, cmd);
-            //     parser = parser->next->next;
-            //     continue;
-            // }
-            if (parser->type == TOKEN_REDIR_APPEND) // >>
+            if (((parser->type == TOKEN_REDIR_APPEND || parser->type == TOKEN_REDIR_HEREDOC || parser->type == TOKEN_REDIR_IN || parser->type == TOKEN_REDIR_OUT) && parser->next == NULL))
+            {
+                perror("error\n");
+                return NULL;
+            }
+                
+            if (parser->type == TOKEN_REDIR_HEREDOC && parser->next) // <<
+            {
+                cmd->command = NULL;
+                init_heredok(parser->next->word, cmd);
+                parser = parser->next->next;
+                continue;
+            }
+            if (parser->type == TOKEN_REDIR_APPEND ) // >>
             {
                 init_append(parser->type, parser->next->word, cmd);
                 parser = parser->next->next;
@@ -526,8 +551,8 @@ t_command *create_parser(t_parser *parser)
             else if (parser->type == TOKEN_REDIR_IN) // <
             {
                 init_redirin(cmd, parser->type, parser->next->word);
-                parser = parser->next;
-                // continue;
+                parser = parser->next->next;
+                continue;
             }
 
             // Аргументы команды (включая саму команду)
@@ -566,11 +591,15 @@ t_command *create_parser(t_parser *parser)
 
 t_command *create_command(t_parser *parser)
 {
-    t_command *command = create_parser(parser);
+    if(cheak_token(parser))
+    {
+            t_command *command = create_parser(parser);
     // if (command)
     //     command->exit_code = 0;
-    free_list(parser);
-    return command;
+        free_list(parser);
+        return command;
+    }
+    return NULL;
 }
 
 // int main(void)

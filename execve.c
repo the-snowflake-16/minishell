@@ -62,8 +62,8 @@ char *ft_strjoin_with_slash(const char *dir, const char *command)
     if (!dir || !command)
         return NULL;
     
-    size_t len_dir = strlen(dir);
-    size_t len_command = strlen(command);
+    size_t len_dir = ft_strlen(dir);
+    size_t len_command = ft_strlen(command);
     
  
     char *full_path = (char *)malloc(len_dir + len_command + 2); 
@@ -94,78 +94,122 @@ void ft_free_array(char **arr)
     }
     free(arr);
 }
-int start_execve(char **args, t_state *state)
+void start_execve(char **args, t_state *state)
 {
     char **envp = t_env_to_envp(state->env);
-    int status = 127; // Default to "command not found"
 
-    // If command is a direct path (contains '/')
-    if (ft_strchr(args[0], '/'))
-    {
-        pid_t pid = fork();
-        if (pid == 0)
-        {
+    // if command is absolute or relative path, try it directly
+    if (args[0][0] == '/' || ft_strncmp(args[0], "./", 2) == 0 || ft_strncmp(args[0], "../", 3) == 0) {
+        if (!access(args[0], X_OK)) {
             execve(args[0], args, envp);
             perror("execve");
-            exit(EXIT_FAILURE); // Exit from child on failure
+            exit(126);
+        } else {
+            perror(args[0]);
+            exit(127);
         }
-        else if (pid > 0)
-        {
-            waitpid(pid, &status, 0);
-        }
-        else
-        {
-            perror("fork");
-        }
-        free_envp(envp);
-        return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
     }
 
-    // Otherwise, search in PATH
-    char *path_var = get_path_from_env(state->env);
-    if (!path_var)
-    {
-        fprintf(stderr, "PATH variable not found\n");
-        free_envp(envp);
-        return status;
+    // if not, search in PATH
+    char *path = get_path_from_env(state->env);
+    if (!path) {
+        fprintf(stderr, "minishell: %s: No such file or directory\n", args[0]);
+        exit(127);
     }
 
-    char **paths = ft_split(path_var, ':');
-    bool executed = false;
-
-    for (int i = 0; paths[i]; i++)
-    {
+    char **paths = ft_split(path, ':');
+    for (int i = 0; paths[i]; i++) {
         char *full_path = ft_strjoin_with_slash(paths[i], args[0]);
-        if (access(full_path, X_OK) == 0)
-        {
-            pid_t pid = fork();
-            if (pid == 0)
-            {
-                execve(full_path, args, envp);
-                perror("execve");
-                exit(EXIT_FAILURE);
-            }
-            else if (pid > 0)
-            {
-                waitpid(pid, &status, 0);
-            }
-            else
-            {
-                perror("fork");
-            }
-            executed = true;
-            free(full_path);
-            break;
+        if (!access(full_path, X_OK)) {
+            execve(full_path, args, envp);
+            perror("execve");
+            exit(126);
         }
         free(full_path);
     }
 
-    if (!executed)
-        fprintf(stderr, "minishell: command not found: %s\n", args[0]);
-        
-
-    ft_free_array(paths);
-    free_envp(envp);
-
-    return (state->last_exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : 1);
+    fprintf(stderr, "minishell: command not found: %s\n", args[0]);
+    exit(127);
 }
+
+// int start_execve(char **args, t_state *state)
+// {
+//     char **envp = t_env_to_envp(state->env);
+//     int status = 0;
+
+//     // If command is a direct path (contains '/')
+//     if (ft_strchr(args[0], '/'))
+//     {
+//         pid_t pid = fork();
+//         if (pid == 0)
+//         {
+//             execve(args[0], args, envp);
+//             perror("execve"); // Если execve не сработал
+//             exit(EXIT_FAILURE);
+//         }
+//         else if (pid > 0)
+//         {
+//             waitpid(pid, &status, 0);
+//         }
+//         else
+//         {
+//             perror("fork");
+//             free_envp(envp);
+//             return 1;
+//         }
+//         free_envp(envp);
+//         return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
+//     }
+
+//     // Поиск в PATH
+//     char *path_var = get_path_from_env(state->env);
+//     if (!path_var)
+//     {
+//         fprintf(stderr, "PATH variable not found\n");
+//         free_envp(envp);
+//         return 127;
+//     }
+
+//     char **paths = ft_split(path_var, ':');
+//     bool executed = false;
+
+//     for (int i = 0; paths[i]; i++)
+//     {
+//         char *full_path = ft_strjoin_with_slash(paths[i], args[0]);
+//         if (access(full_path, X_OK) == 0)
+//         {
+//             pid_t pid = fork();
+//             if (pid == 0)
+//             {
+//                 execve(full_path, args, envp);
+//                 perror("execve");
+//                 exit(EXIT_FAILURE);
+//             }
+//             else if (pid > 0)
+//             {
+//                 waitpid(pid, &status, 0);
+//             }
+//             else
+//             {
+//                 perror("fork");
+//                 free(full_path);
+//                 break;
+//             }
+//             executed = true;
+//             free(full_path);
+//             break;
+//         }
+//         free(full_path);
+//     }
+
+//     if (!executed)
+//     {
+//         fprintf(stderr, "minishell: command not found: %s\n", args[0]);
+//         status = 127; // стандарт для "command not found"
+//     }
+
+//     ft_free_array(paths);
+//     free_envp(envp);
+
+//     return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
+// }
