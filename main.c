@@ -230,10 +230,17 @@ void init_minishell(char **env) {
     free_env(state.env);
 }
 
+
+void segfault_handler(int sig) {
+    (void)sig;
+    printf("INCORECT INPUT\n");
+    exit(1); // лучше завершить работу безопасно
+}
+
 int main(int argc, char **argv, char **env) {
     (void)argv;
     (void)argc;
-
+    signal(SIGSEGV, segfault_handler);
     init_minishell(env);
     return 0;
 }

@@ -98,11 +98,11 @@ void heredoc_sigint_handler(int sig)
 {
     (void)sig;
     g_heredoc_interrupted = 1;
-    write(1, "\n", 1);
-    rl_replace_line("", 0);
-    rl_done = 1; // Завершает readline
+    // write(1, "\n", 1);
+    // rl_replace_line("", 0);
+    // rl_redisplay();
+    rl_done = 1; // Прерывает readline
 }
-
 
 int heredok(const char *delimiter)
 {
@@ -118,20 +118,26 @@ int heredok(const char *delimiter)
 
     if (pid == 0)
     {
-        // child process — heredoc input
-        signal(SIGINT, heredoc_sigint_handler);
-
+        // Child process
         char *line;
+
+        // Устанавливаем обработчик до начала чтения
+        signal(SIGINT, heredoc_sigint_handler);
+        close(pipe_fd[0]); // не читаем
+
         while (1)
         {
-            line = readline("> ");
+            line = readline("❄️  ");
             if (!line)
                 exit(0); // Ctrl+D
+
+            if (g_heredoc_interrupted)
+                exit(1); // Ctrl-C
 
             if (!strcmp(line, delimiter))
             {
                 free(line);
-                exit(0); // Success
+                exit(0);
             }
 
             write(pipe_fd[1], line, strlen(line));
@@ -141,22 +147,20 @@ int heredok(const char *delimiter)
     }
     else
     {
-        // parent process
+        // Parent process
         int status;
-        close(pipe_fd[1]); // only read
-
+        close(pipe_fd[1]); // не пишем
         waitpid(pid, &status, 0);
 
         if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT)
         {
             close(pipe_fd[0]);
-            return -1; // heredoc interrupted
+            return -1;
         }
-        return pipe_fd[0]; // descriptor to read
+
+        return pipe_fd[0];
     }
 }
-
-
 
 
 int is_parent_builtin(const char *cmd)
