@@ -1,133 +1,115 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   token_utils.c                                      :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/06/03 12:03:01 by fortytwo          #+#    #+#             */
+/*   Updated: 2025/06/03 12:47:47 by fortytwo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "minishell.h"
-#include <stdio.h>
-#include <stdlib.h>
 
-int count_words(char *s)
+int	skip_non_content(const char *s, int i, char *quote)
 {
-    int count = 0;
-    int i = 0;
-
-    if (!s)
-        return 0;
-    while (s[i])
-    {
-        while (s[i] == ' ')
-            i++;
-        if (s[i] == '\'')
-        {
-            i++;
-            while (s[i] != '\'' && s[i] != '\0')
-                i++;
-            count++;
-            i++;
-        }
-        if (s[i] == '"')
-        {
-            i++;
-            while (s[i] != '"' && s[i] != '\0')
-                i++;
-            count++;
-            i++;
-        }
-        if (s[i] && s[i] != ' ')
-        {
-            count++;
-            while (s[i] && s[i] != ' ')
-                i++;
-        }
-    }
-    return count;
+	while (s[i] == ' ')
+		i++;
+	if (s[i] == '\'' || s[i] == '"')
+	{
+		*quote = s[i];
+		i++;
+		while (s[i] && s[i] != *quote)
+			i++;
+		if (s[i] == *quote)
+			i++;
+	}
+	else
+		*quote = 0;
+	return (i);
 }
 
-char **ft_splitt(char *s)
+int	count_words(char *s)
 {
-    char **rs;
-    int i = 0;
-    int word_index = 0;
-    int start;
-    int len = 0;
-    int in_single_quote = 0;
-    int in_double_quote = 0;
+	int		i;
+	int		count;
+	char	quote;
 
-    rs = malloc(sizeof(char *) * (count_words(s) + 1));
-    if (!rs)
-        return NULL;
-
-    while (s[i])
-    {
-        while (s[i] == ' ' && !in_single_quote && !in_double_quote)
-            i++;
-
-        if (!s[i])
-            break;
-
-        start = i;
-        while (s[i])
-        {
-            if (s[i] == '\'' && !in_double_quote)
-            {
-                in_single_quote = !in_single_quote;
-                i++;
-            }
-            else if (s[i] == '"' && !in_single_quote)
-            {
-                in_double_quote = !in_double_quote;
-                i++;
-            }
-            else if (s[i] == ' ' && !in_single_quote && !in_double_quote)
-            {
-                break;
-            }
-            else
-            {
-                i++;
-            }
-        }
-
-        len = i - start;
-        rs[word_index] = malloc(sizeof(char) * (len + 1));
-        if (!rs[word_index])
-        {
-            for (int k = 0; k < word_index; k++)
-                free(rs[k]);
-            free(rs);
-            return NULL;
-        }
-        for (int j = 0; j < len; j++)
-        {
-            rs[word_index][j] = s[start + j];
-        }
-        rs[word_index][len] = '\0';
-        word_index++;
-    }
-
-    rs[word_index] = NULL;
-    return rs;
-}
-// int count(char *s)
-// {
-//     int i = 0;
-//     int count = 0;
-//     while (s[i])
-//     {
-//         i++;
-//     }
-    
-// }
-// char *ft_spli(char *s)
-// {
-//     char **rs;
-// }
-// only for checking don`t delete
-//  !!!!!!!!!!!!!!!!!!
-void check_arr_of_token(t_token *token)
-{   
-
-        for (int i = 0; token->token_arr[i]; i++)
-        {
-            printf("Token %d: %s\n", i, token->token_arr[i]);
-        }
-        printf("Word count: %d\n", token->count_tokens);
-
+	i = 0;
+	count = 0;
+	if (!s)
+		return (0);
+	while (s[i])
+	{
+		i = skip_non_content(s, i, &quote);
+		if (quote)
+			count++;
+		else if (s[i] && s[i] != ' ')
+		{
+			count++;
+			while (s[i] && s[i] != ' ')
+				i++;
+		}
+	}
+	return (count);
 }
 
+char	*extract_word(char *s, int start, int end)
+{
+	char	*word;
+	int		i;
+
+	word = malloc(end - start + 1);
+	if (!word)
+		return (NULL);
+	i = 0;
+	while (start < end)
+		word[i++] = s[start++];
+	word[i] = '\0';
+	return (word);
+}
+
+void	free_words(char **rs, int index)
+{
+	int	i;
+
+	i = 0;
+	while (i < index)
+	{
+		free(rs[i]);
+		i++;
+	}
+	free(rs);
+}
+
+char	**ft_splitt(char *s)
+{
+	char	**rs;
+	int		i;
+	int		word_index;
+
+	rs = malloc(sizeof(char *) * (count_words(s) + 1));
+	if (!rs)
+		return (NULL);
+	i = 0;
+	word_index = 0;
+	while (s[i])
+		word_index = split_loop(s, rs, &i, word_index);
+	rs[word_index] = NULL;
+	return (rs);
+}
+
+// Debug function only – not norminette compliant
+// void	check_arr_of_token(t_token *token)
+// {
+// 	int	i;
+
+// 	i = 0;
+// 	while (token->token_arr[i])
+// 	{
+// 		printf("Token %d: %s\n", i, token->token_arr[i]);
+// 		i++;
+// 	}
+// 	printf("Word count: %d\n", token->count_tokens);
+// }

@@ -1,215 +1,92 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   execve.c                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/06/03 10:32:53 by fortytwo          #+#    #+#             */
+/*   Updated: 2025/06/03 10:59:43 by fortytwo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "minishell.h"
 
-char **t_env_to_envp(t_env *env)
+char	*ft_strjoin_with_slash(const char *dir, const char *command)
 {
-    int count = 0;
-    t_env *tmp = env;
+	size_t	len_dir;
+	size_t	len_command;
+	char	*full_path;
 
-    while (tmp)
-    {
-        count++;
-        tmp = tmp->next;
-    }
-
-    char **envp = malloc(sizeof(char *) * (count + 1));
-    if (!envp)
-        return NULL;
-
-    tmp = env;
-    int i = 0;
-
-    while (tmp)
-    {
-        char *key_equal = ft_strjoin(tmp->key, "=");
-        char *full_str = ft_strjoin(key_equal, tmp->value);
-        free(key_equal);
-        envp[i] = full_str;
-        i++;
-        tmp = tmp->next;
-    }
-    envp[i] = NULL;
-
-    return envp;
+	if (!dir || !command)
+		return (NULL);
+	len_dir = ft_strlen(dir);
+	len_command = ft_strlen(command);
+	full_path = (char *)malloc(len_dir + len_command + 2);
+	if (!full_path)
+		return (NULL);
+	strcpy(full_path, dir);
+	full_path[len_dir] = '/';
+	strcpy(full_path + len_dir + 1, command);
+	return (full_path);
 }
 
-void free_envp(char **envp)
+static void	handle_absolute_or_relative(char **args, char **envp)
 {
-    if (!envp)
-        return;
-
-    int i = 0;
-    while (envp[i])
-    {
-        free(envp[i]);
-        i++;
-    }
-    free(envp);
+	if (!access(args[0], X_OK))
+	{
+		execve(args[0], args, envp);
+		perror("execve");
+		exit(126);
+	}
+	else
+	{
+		perror(args[0]);
+		exit(127);
+	}
 }
 
-char *get_path_from_env(t_env *env)
+static void	handle_path_not_found(char *cmd)
 {
-    while (env)
-    {
-        if (ft_strcmp(env->key, "PATH") == 0)
-            return env->value;
-        env = env->next;
-    }
-    return NULL;
-}
-char *ft_strjoin_with_slash(const char *dir, const char *command)
-{
-
-    if (!dir || !command)
-        return NULL;
-    
-    size_t len_dir = ft_strlen(dir);
-    size_t len_command = ft_strlen(command);
-    
- 
-    char *full_path = (char *)malloc(len_dir + len_command + 2); 
-    
-    if (!full_path)
-        return NULL;
-    
-
-    strcpy(full_path, dir);
-    
-
-    full_path[len_dir] = '/';
-    strcpy(full_path + len_dir + 1, command);
-    
-    return full_path;
+	fprintf(stderr, "minishell: %s: No such file or directory\n", cmd);
+	exit(127);
 }
 
-void ft_free_array(char **arr)
+static void	search_and_exec_in_path(char **args, char **paths, char **envp)
 {
-    if (!arr)
-        return;
+	char	*full_path;
+	int		i;
 
-    int i = 0;
-    while (arr[i])
-    {
-        free(arr[i]);
-        i++;
-    }
-    free(arr);
-}
-void start_execve(char **args, t_state *state)
-{
-    char **envp = t_env_to_envp(state->env);
-
-    // if command is absolute or relative path, try it directly
-    if (args[0][0] == '/' || ft_strncmp(args[0], "./", 2) == 0 || ft_strncmp(args[0], "../", 3) == 0) {
-        if (!access(args[0], X_OK)) {
-            execve(args[0], args, envp);
-            perror("execve");
-            exit(126);
-        } else {
-            perror(args[0]);
-            exit(127);
-        }
-    }
-
-    // if not, search in PATH
-    char *path = get_path_from_env(state->env);
-    if (!path) {
-        fprintf(stderr, "minishell: %s: No such file or directory\n", args[0]);
-        exit(127);
-    }
-
-    char **paths = ft_split(path, ':');
-    for (int i = 0; paths[i]; i++) {
-        char *full_path = ft_strjoin_with_slash(paths[i], args[0]);
-        if (!access(full_path, X_OK)) {
-            execve(full_path, args, envp);
-            perror("execve");
-            exit(126);
-        }
-        free(full_path);
-    }
-
-    fprintf(stderr, "minishell: command not found: %s\n", args[0]);
-    exit(127);
+	i = 0;
+	while (paths[i])
+	{
+		full_path = ft_strjoin_with_slash(paths[i], args[0]);
+		if (!access(full_path, X_OK))
+		{
+			execve(full_path, args, envp);
+			perror("execve");
+			exit(126);
+		}
+		free(full_path);
+		i++;
+	}
+	fprintf(stderr, "minishell: command not found: %s\n", args[0]);
+	exit(127);
 }
 
-// int start_execve(char **args, t_state *state)
-// {
-//     char **envp = t_env_to_envp(state->env);
-//     int status = 0;
+void	start_execve(char **args, t_state *state)
+{
+	char	**envp;
+	char	*path;
+	char	**paths;
 
-//     // If command is a direct path (contains '/')
-//     if (ft_strchr(args[0], '/'))
-//     {
-//         pid_t pid = fork();
-//         if (pid == 0)
-//         {
-//             execve(args[0], args, envp);
-//             perror("execve"); // Если execve не сработал
-//             exit(EXIT_FAILURE);
-//         }
-//         else if (pid > 0)
-//         {
-//             waitpid(pid, &status, 0);
-//         }
-//         else
-//         {
-//             perror("fork");
-//             free_envp(envp);
-//             return 1;
-//         }
-//         free_envp(envp);
-//         return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
-//     }
-
-//     // Поиск в PATH
-//     char *path_var = get_path_from_env(state->env);
-//     if (!path_var)
-//     {
-//         fprintf(stderr, "PATH variable not found\n");
-//         free_envp(envp);
-//         return 127;
-//     }
-
-//     char **paths = ft_split(path_var, ':');
-//     bool executed = false;
-
-//     for (int i = 0; paths[i]; i++)
-//     {
-//         char *full_path = ft_strjoin_with_slash(paths[i], args[0]);
-//         if (access(full_path, X_OK) == 0)
-//         {
-//             pid_t pid = fork();
-//             if (pid == 0)
-//             {
-//                 execve(full_path, args, envp);
-//                 perror("execve");
-//                 exit(EXIT_FAILURE);
-//             }
-//             else if (pid > 0)
-//             {
-//                 waitpid(pid, &status, 0);
-//             }
-//             else
-//             {
-//                 perror("fork");
-//                 free(full_path);
-//                 break;
-//             }
-//             executed = true;
-//             free(full_path);
-//             break;
-//         }
-//         free(full_path);
-//     }
-
-//     if (!executed)
-//     {
-//         fprintf(stderr, "minishell: command not found: %s\n", args[0]);
-//         status = 127; // стандарт для "command not found"
-//     }
-
-//     ft_free_array(paths);
-//     free_envp(envp);
-
-//     return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
-// }
+	envp = t_env_to_envp(state->env);
+	if (args[0][0] == '/' || ft_strncmp(args[0], "./", 2) == 0
+		|| ft_strncmp(args[0], "../", 3) == 0)
+		handle_absolute_or_relative(args, envp);
+	path = get_path_from_env(state->env);
+	if (!path)
+		handle_path_not_found(args[0]);
+	paths = ft_split(path, ':');
+	search_and_exec_in_path(args, paths, envp);
+}

@@ -1,27 +1,77 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   sort_input.c                                       :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/06/03 11:10:23 by fortytwo          #+#    #+#             */
+/*   Updated: 2025/06/03 11:52:37 by fortytwo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
-char	*add_space_before(char *s, int pos)
+#include "minishell.h"
+
+static int	process_before(char **result, int *i, int *len)
 {
-	char	*res;
+	char	*new_str;
 
-	res = malloc(strlen(s) + 2);
-	strncpy(res, s, pos);
-	res[pos] = ' ';
-	strcpy(res + pos + 1, s + pos);
-	return (res);
+	if (*i > 0 && (*result)[*i - 1] != ' ')
+	{
+		new_str = add_space_before(*result, *i);
+		free(*result);
+		*result = new_str;
+		(*len)++;
+		(*i)++;
+		return (1);
+	}
+	return (0);
 }
 
-char	*add_space_after(char *s, int pos)
+static int	process_after(char **result, int *i, int *len)
 {
-	char	*res;
+	char	*new_str;
 
-	res = malloc(strlen(s) + 2);
-	strncpy(res, s, pos + 1);
-	res[pos + 1] = ' ';
-	strcpy(res + pos + 2, s + pos + 1);
-	return (res);
+	if (*i < *len - 1 && (*result)[*i + 1] != ' ')
+	{
+		new_str = add_space_after(*result, *i);
+		free(*result);
+		*result = new_str;
+		(*len)++;
+		return (1);
+	}
+	return (0);
+}
+
+static int	process_char(char **result, int *i, int *len, int checker)
+{
+	if (is_special((*result)[*i]) && !checker)
+	{
+		if (process_before(result, i, len))
+			return (1);
+		if (is_double_operator(*result, *i, *len))
+			(*i)++;
+		if (process_after(result, i, len))
+			return (1);
+	}
+	return (0);
+}
+
+static int	process_filter_loop(char **result, int *len)
+{
+	int		i;
+	int		checker;
+
+	i = -1;
+	checker = 0;
+	while (++i < *len)
+	{
+		if ((*result)[i] == '\'' || (*result)[i] == '"')
+			checker = 1;
+		if (process_char(result, &i, len, checker))
+			return (1);
+	}
+	return (0);
 }
 
 char	*filter(char *s)
@@ -29,57 +79,17 @@ char	*filter(char *s)
 	char	*result;
 	int		modified;
 	int		len;
-	char	*new_str;
-	int checker = 0;
-	if (!s)
+
+	result = ft_strdup(s);
+	if (!s || !result)
 		return (NULL);
-	result = strdup(s);
 	modified = 1;
 	while (modified)
 	{
 		modified = 0;
 		len = strlen(result);
-		for (int i = 0; i < len; i++)
-		{
-			if (result[i] == '\'' || result[i] == '"')
-				checker = 1;
-			if ((result[i] == '|' || result[i] == '>' || result[i] == '<') && !checker)
-			{
-				if (i > 0 && result[i - 1] != ' ')
-				{
-					new_str = add_space_before(result, i);
-					free(result);
-					result = new_str;
-					modified = 1;
-					len++;
-					i++;
-					break ;
-				}
-				if(i < len -1 && result[i] == '>' && result[i+1] == '>')
-					i++;
-				if(i < len -1 && result[i] == '<' && result[i+1] == '<')
-					i++;
-				if (i < len - 1 && result[i + 1] != ' ')
-				{
-					new_str = add_space_after(result, i);
-					free(result);
-					result = new_str;
-					modified = 1;
-					len++;
-					break ;
-				}
-			}
-		}
+		if (process_filter_loop(&result, &len))
+			modified = 1;
 	}
 	return (result);
 }
-
-// int	main(void)
-// {
-// 	char *s = "cat|hfg|fhf >> |fjdj |dhf";
-// 	char *ss = filter(s);
-// 	printf("Original: %s\n", s);
-// 	printf("Filtered: %s\n", ss);
-// 	free(ss);
-// 	return (0);
-// }
