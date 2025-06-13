@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 12:03:01 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/03 12:47:47 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 14:02:37 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,22 +83,27 @@ void	free_words(char **rs, int index)
 	free(rs);
 }
 
-char	**ft_splitt(char *s)
+char **ft_splitt(char *s)
 {
-	char	**rs;
-	int		i;
-	int		word_index;
+    char **rs;
+    int i = 0;
+    int word_index = 0;
 
-	rs = malloc(sizeof(char *) * (count_words(s) + 1));
-	if (!rs)
-		return (NULL);
-	i = 0;
-	word_index = 0;
-	while (s[i])
-		word_index = split_loop(s, rs, &i, word_index);
-	rs[word_index] = NULL;
-	return (rs);
+    rs = malloc(sizeof(char *) * (count_words(s) + 1));
+    if (!rs)
+        return NULL;
+
+    while (s[i])
+    {
+        int res = split_loop(s, rs, &i, word_index);
+        if (res == -1)
+            return NULL;  // Ошибка, память уже освобождена в split_loop
+        word_index = res;
+    }
+    rs[word_index] = NULL;
+    return rs;
 }
+
 
 // Debug function only – not norminette compliant
 // void	check_arr_of_token(t_token *token)

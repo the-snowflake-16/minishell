@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 13:17:26 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/07 13:17:34 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 14:25:36 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,32 +125,38 @@ int	change_cwd(char **swd)
 	return (0);
 }
 
-int	echo(t_command *command)
+int echo(t_command *command)
 {
-	int	i;
-	int	newline;
+    int i = 1;
+    int newline = 1;
 
-	i = 1;
-	newline = 1;
-	if (command->args[1] && !ft_strcmp(command->args[1], "-n"))
-	{
-		newline = 0;
-		i = 2;
-	}
-	while (command->args[i])
-	{
-		if (command->single_quotes)
-			printf("%s", command->args[i]);
-		else
-			printf("%s", command->args[i]);
-		if (command->args[i + 1])
-			printf(" ");
-		i++;
-	}
-	if (newline)
-		printf("\n");
-	return (0);
+    if (!command || !command->args)
+        return 1; // Ошибка: нет аргументов
+
+    if (command->args[1] && !ft_strcmp(command->args[1], "-n"))
+    {
+        newline = 0;
+        i = 2;
+    }
+
+    while (command->args[i])
+    {
+        // single_quotes тут не влияет, одинаково printf("%s")
+        printf("%s", command->args[i]);
+        if (command->args[i + 1])
+            printf(" ");
+        i++;
+    }
+
+    if (newline)
+        printf("\n");
+
+    // Освобождение команды лучше делать вне echo, чтобы не было двойного free
+    // free_comand(command);
+
+    return 0;
 }
+
 
 int	is_builtin(const char *cmd)
 {
@@ -210,13 +216,17 @@ void	start_token(char *input, t_state *state)
 		token = tokenize(sort_input);
 		free(sort_input);
 		parser_list = create_list(token->token_arr, state);
+		free_token(token);
 		command = create_command(parser_list);
 		if (command != NULL)
 		{
 			execute_pipeline(command, state);
 			free_comand(command);
 		}
-		free_token(token);
+		else
+			free_list(parser_list);
+
+		token = NULL;
 	}
 }
 

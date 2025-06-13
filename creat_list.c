@@ -48,25 +48,6 @@ t_parser	*append_node(t_parser **head, t_parser **current, t_parser *new_node)
 	return (new_node);
 }
 
-char	*get_parametr(char *s)
-{
-	char	*res;
-	int		i;
-	int		j;
-
-	res = malloc(sizeof(char) * ft_strlen(s));
-	if (!res)
-		return (NULL);
-	i = 0;
-	j = 1;
-	while (s[j])
-	{
-		res[i++] = s[j++];
-	}
-	res[i] = '\0';
-	return (res);
-}
-
 int	first_quoter(char *s)
 {
 	int	i;

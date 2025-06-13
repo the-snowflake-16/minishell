@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 10:32:53 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/03 10:59:43 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 14:08:18 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,11 +37,13 @@ static void	handle_absolute_or_relative(char **args, char **envp)
 	{
 		execve(args[0], args, envp);
 		perror("execve");
+		free_envp(envp);
 		exit(126);
 	}
 	else
 	{
 		perror(args[0]);
+		free_envp(envp);
 		exit(127);
 	}
 }
@@ -65,12 +67,15 @@ static void	search_and_exec_in_path(char **args, char **paths, char **envp)
 		{
 			execve(full_path, args, envp);
 			perror("execve");
+			free_envp(envp);
 			exit(126);
 		}
 		free(full_path);
 		i++;
 	}
 	fprintf(stderr, "minishell: command not found: %s\n", args[0]);
+	ft_free_array(paths);
+	free_envp(envp);
 	exit(127);
 }
 
@@ -89,4 +94,5 @@ void	start_execve(char **args, t_state *state)
 		handle_path_not_found(args[0]);
 	paths = ft_split(path, ':');
 	search_and_exec_in_path(args, paths, envp);
+	ft_free_array(paths);
 }

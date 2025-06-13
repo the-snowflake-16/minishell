@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 10:39:27 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/07 13:12:44 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 14:11:43 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,11 @@ static t_command	*new_command(t_parser **parser)
 	if (!cmd->args)
 		return (NULL);
 	if (!fill_command_args(parser, cmd))
+	{
+		free(cmd->args);
+		free(cmd);
 		return (NULL);
+	}
 	if (cmd->args[0])
 		cmd->command = ft_strdup(cmd->args[0]);
 	return (cmd);

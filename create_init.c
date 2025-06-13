@@ -6,27 +6,30 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 12:57:33 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/07 12:59:58 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 14:12:31 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-void	init_comand(t_command *comand)
+void init_comand(t_command *cmd)
 {
-	comand->args = NULL;
-	comand->redirects = NULL;
-	comand->next = NULL;
+	cmd->command = NULL;
+	cmd->args = NULL;
+	cmd->redirects = NULL;
+	cmd->next = NULL;
+	cmd->single_quotes = false;
+	cmd->exit_code = 0;
 }
+
 
 void	init_redirin(t_command *cmd, t_token_type inp, char *file)
 {
+	if (cmd->redirects)
+		free_redirect(cmd->redirects);
+	cmd->redirects = malloc(sizeof(t_redirect));
 	if (!cmd->redirects)
-	{
-		cmd->redirects = malloc(sizeof(t_redirect));
-		if (!cmd->redirects)
-			return ;
-	}
+		return ;
 	if (inp == TOKEN_REDIR_IN)
 	{
 		cmd->redirects->file = ft_strdup(file);
@@ -39,12 +42,11 @@ void	init_redirin(t_command *cmd, t_token_type inp, char *file)
 
 void	init_heredok(char *delimiter, t_command *cmd)
 {
+	if (cmd->redirects)
+		free_redirect(cmd->redirects);
+	cmd->redirects = malloc(sizeof(t_redirect));
 	if (!cmd->redirects)
-	{
-		cmd->redirects = malloc(sizeof(t_redirect));
-		if (!cmd->redirects)
-			return ;
-	}
+		return ;
 	cmd->redirects->file = NULL;
 	cmd->redirects->is_heredoc = true;
 	cmd->redirects->is_append = false;
@@ -55,12 +57,11 @@ void	init_heredok(char *delimiter, t_command *cmd)
 
 void	init_append(t_token_type inp, char *file, t_command *cmd)
 {
+	if (cmd->redirects)
+		free_redirect(cmd->redirects);
+	cmd->redirects = malloc(sizeof(t_redirect));
 	if (!cmd->redirects)
-	{
-		cmd->redirects = malloc(sizeof(t_redirect));
-		if (!cmd->redirects)
-			return ;
-	}
+		return ;
 	cmd->redirects->file = ft_strdup(file);
 	if (inp == TOKEN_REDIR_APPEND)
 	{
@@ -73,12 +74,11 @@ void	init_append(t_token_type inp, char *file, t_command *cmd)
 
 void	init_redir_out(t_token_type inp, char *file, t_command *cmd)
 {
+	if (cmd->redirects)
+		free_redirect(cmd->redirects);
+	cmd->redirects = malloc(sizeof(t_redirect));
 	if (!cmd->redirects)
-	{
-		cmd->redirects = malloc(sizeof(t_redirect));
-		if (!cmd->redirects)
-			return ;
-	}
+		return ;
 	cmd->redirects->file = ft_strdup(file);
 	if (inp == TOKEN_REDIR_OUT)
 	{

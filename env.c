@@ -8,25 +8,25 @@ void free_env(t_env *env)
     t_env *tmp;
     while (env != NULL)
     {
+        // printf("free env");
         tmp = env->next;
         free(env->key);
         free(env->value);
         free(env);
         env = tmp;
     }
-    free(tmp);
-}
-void ft_split_equal(char *s, t_env *env)
-{
+   }
+   void ft_split_equal(char *s, t_env *env)
+   {
     int i = 0;
     while (s[i] != '=' && s[i] != '\0')
-        i++;
-    env->key = strndup(s, i);
+    	i++;
+    env->key = ft_strndup(s, i);
     if (s[i] == '=')
-        env->value = strdup(s + i + 1);
+    	env->value = ft_strdup(s + i + 1);
     else
-        env->value = strdup("");
-}
+    	env->value = ft_strdup("");
+   }
 
 t_env *add_left_right(char *s)
 {

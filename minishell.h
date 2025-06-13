@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 08:01:37 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/07 13:13:51 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 14:15:44 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,8 @@
 # include <readline/history.h>
 # include "libft/libft.h"
 
+extern volatile sig_atomic_t	g_heredoc_interrupted;
+
 typedef enum e_token_type
 {
 	TOKEN_WORD,
@@ -40,7 +42,7 @@ typedef enum e_token_type
 typedef struct s_token
 {
 	char	**token_arr;
-	int		count_tokens;
+	// int		count_tokens;
 }	t_token;
 
 typedef struct s_parser
@@ -85,6 +87,10 @@ typedef struct s_state
 	t_env	*env;
 	int		last_exit_code;
 	int		has_next;
+	int		heredoc_fd;
+	int		fd[2];
+	int		in_fd;
+	int		pid_count;
 }	t_state;
 
 /* token_utils.c */
@@ -92,7 +98,7 @@ int		skip_non_content(const char *s, int i, char *quote);
 int		count_words(char *s);
 char	**ft_splitt(char *s);
 char	*extract_word(char *s, int start, int end);
-void	free_words(char **rs, int index);
+void    free_words(char **rs, int index);
 void	check_arr_of_token(t_token *token);
 
 /* token.c */
@@ -120,21 +126,21 @@ char		*strjoin_and_free_char(char *s1, char c);
 void		free_list(t_parser *head);
 t_command	*create_command(t_parser *parser);
 t_parser	*create_list(char **ss, t_state *state);
-// void	print_list(t_parser *parser);
-// void	print_command(t_command *cmd);
 char		*get_parametr(char *s);
 int			first_quoter(char *s);
 
-// create_handel.c
+/* create_handel.c */
+bool	handle_redirections(t_parser **parser, t_command *cmd);
 bool	cheak_token(t_parser *parser);
-int	count_args_until_pipe(t_parser *parser);
+int		count_args_until_pipe(t_parser *parser);
 bool	handle_heredoc_append(t_parser **parser, t_command *cmd);
 bool	handle_in_out_redirs(t_parser **parser, t_command *cmd);
-bool	handle_redirections(t_parser **parser, t_command *cmd);
 
-// create_utils2.c
+/* create_utils2.c */
 void	free_comand(t_command *command);
-// create_init
+void free_redirect(t_redirect *redirect);
+
+/* create_init.c */
 void	init_comand(t_command *comand);
 void	init_redirin(t_command *cmd, t_token_type inp, char *file);
 void	init_heredok(char *delimiter, t_command *cmd);
@@ -186,17 +192,14 @@ int		unset(t_env **my_env, char *s);
 
 /* executions.c */
 void	execute_pipeline(t_command *cmd, t_state *state);
-int		handle_parent_redirs(t_redirect *redir);
-int		handle_heredoc(t_redirect *redir);
-void	redirect_fds(t_state *s, int *fd, int in_fd);
-int		apply_redirects(t_redirect *r);
-
-/* execution_child.c */
-void	cleanup_fds(int heredoc_fd, int *fd, int *in_fd, t_state *s);
-int		launch_child(t_command *cmd, t_state *s, int *fd, int *in_fd);
-void	child_process(t_command *cmd, t_state *s, int *fd, int in_fd);
-int		heredok(const char *delimiter);
-int		is_parent_builtin(const char *cmd);
+int		handle_redirectionss(t_command *cmd);
+int		execute_builtin_last(t_command *cmd, t_state *state);
+void	setup_child_input(t_state *state);
+void	child_process(t_command *cmd, t_state *state, int has_next);
+void	setup_child_output(t_state *state, int has_next);
+void	parent_process_cleanup(t_state *state, int has_next);
+int		fork_and_execute(t_command *cmd, t_state *state, int has_next,
+			pid_t *pids);
 
 /* main.c */
 void	cmp_input(t_command *command, t_state *state);
@@ -210,7 +213,20 @@ void	update_exit_code(t_state *s, int status);
 int		redirect_output(const char *file);
 int		redirect_input(const char *file);
 int		redirect_append(const char *file);
-void	handle_child_process(int *pipe_fd, const char *delimiter);
+int		is_parent_builtin(const char *cmd);
+int		setup_pipe(t_state *state, int has_next);
+
+/* heredok.c */
+void	heredoc_sigint_handler(int sig);
+int		process_heredoc_line(char *line, const char *delimiter, int pipe_fd);
+void	heredoc_child_process(const char *delimiter, int pipe_fd);
+int		heredoc_parent_process(pid_t pid, int *pipe_fd);
 int		heredok(const char *delimiter);
+
+/* heredok2.c */
+int		write_line_to_pipe(int pipe_fd, char *line);
+int		handle_child_status(int status, int pipe_fd);
+int		handle_heredoc(t_command *cmd, t_state *state);
+
 
 #endif
