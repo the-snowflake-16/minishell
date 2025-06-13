@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 13:17:26 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/13 15:19:52 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 23:16:38 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -205,32 +205,67 @@ void	cmp_input(t_command *command, t_state *state)
 		start_execve(command->args, state);
 }
 
-void	start_token(char *input, t_state *state)
+int validate_redirections(t_parser *parser)
+{
+	t_parser *tmp = parser;
+
+	while (tmp)
+	{
+		if (tmp->type == TOKEN_REDIR_IN || tmp->type == TOKEN_REDIR_OUT ||
+			tmp->type == TOKEN_REDIR_HEREDOC || tmp->type == TOKEN_REDIR_APPEND)
+		{
+			if (!tmp->next || tmp->next->type != TOKEN_WORD)
+			{
+				printf("syntax error: redirection missing filename\n");
+				return 1;
+			}
+		}
+		tmp = tmp->next;
+	}
+	return 0;
+}
+
+
+void start_token(char *input, t_state *state)
 {
 	char		*sort_input;
-	t_token		*token;
-	t_parser	*parser_list;
-	t_command	*command;
+	t_token		*token = NULL;
+	t_parser	*parser_list = NULL;
+	t_command	*command = NULL;
 
 	if (!incorect_input(input))
 	{
 		sort_input = filter(input);
 		token = tokenize(sort_input);
 		free(sort_input);
+
+		if (!token || !token->token_arr)
+			return;
+
 		parser_list = create_list(token->token_arr, state);
 		free_token(token);
-		command = create_command(parser_list);
-		if (command != NULL)
+		if (validate_redirections(parser_list))
 		{
-			execute_pipeline(command, state);
-			free_comand(command);
+			// redirection missing filename error printed inside validate_redirections
+			free_list(parser_list);
+			return;
+		}
+			command = create_command(parser_list);
+			if (command != NULL)
+			{
+				execute_pipeline(command, state);
+				free_comand(command);
+			}
+			else
+				free_list(parser_list);
 		}
 		else
+		{
 			free_list(parser_list);
-
-		token = NULL;
-	}
+		}
+	
 }
+
 
 void	init_minishell(char **env)
 {

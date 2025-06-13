@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/13 15:49:54 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/13 15:53:28 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 22:53:57 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -133,49 +133,49 @@ t_parser	*create_list(char **ss, t_state *state)
 //     }
 // }
 
-// void print_redirect(t_redirect *redir)
-// {
-//     if (!redir)
-//     {
-//         printf("  No redirect\n");
-//         return;
-//     }
-//     printf("  Redirect:\n");
-//     if (redir->file != NULL) {
-//         printf("Redirect file: %s\n", redir->file);
-//     } else {
-//         fprintf(stderr, "Error: Redirect file is NULL!\n");
-//     }
-//     printf("    is_input: %s\n", redir->is_input ? "true" : "false");
-//     printf("    append: %s\n", redir->is_append ? "true" : "false");
-//     printf("    is_heredoc: %s\n", redir->is_heredoc ? "true" : "false");
-//     if(redir->is_heredoc)
-//         printf("delimiter %s\n", redir->delimiter);
-// }
+void print_redirect(t_redirect *redir)
+{
+    if (!redir)
+    {
+        printf("  No redirect\n");
+        return;
+    }
+    printf("  Redirect:\n");
+    if (redir->file != NULL) {
+        printf("Redirect file: %s\n", redir->file);
+    } else {
+        fprintf(stderr, "Error: Redirect file is NULL!\n");
+    }
+    printf("    is_input: %s\n", redir->is_input ? "true" : "false");
+    printf("    append: %s\n", redir->is_append ? "true" : "false");
+    printf("    is_heredoc: %s\n", redir->is_heredoc ? "true" : "false");
+    if(redir->is_heredoc)
+        printf("delimiter %s\n", redir->delimiter);
+}
 
-// void print_command(t_command *cmd)
-// {
-//     int i;
+void print_command(t_command *cmd)
+{
+    int i;
 
-//     while (cmd)
-//     {
-//         printf("Command:\n");
-//         if (cmd->args)
-//         {
-//             i = 0;
-//             while (cmd->args[i])
-//             {
-//                 printf("  arg[%d]: %s\n", i, cmd->args[i]);
-//                 i++;
-//             }
-//         }
-//         else
-//             printf("  No args\n");
+    while (cmd)
+    {
+        printf("Command:\n");
+        if (cmd->args)
+        {
+            i = 0;
+            while (cmd->args[i])
+            {
+                printf("  arg[%d]: %s\n", i, cmd->args[i]);
+                i++;
+            }
+        }
+        else
+            printf("  No args\n");
 
-//         printf("Input redirect:\n");
-//         print_redirect(cmd->redirects);
+        printf("Input redirect:\n");
+        print_redirect(cmd->redirects);
 
-//         printf("\n---\n");
-//         cmd = cmd->next;
-//     }
-// }
+        printf("\n---\n");
+        cmd = cmd->next;
+    }
+}

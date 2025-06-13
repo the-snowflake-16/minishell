@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 08:01:37 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/13 15:49:47 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 23:25:27 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,6 +70,8 @@ typedef struct s_redirect
 	bool	is_append;
 	bool	is_heredoc;
 	char	*delimiter;
+	struct s_redirect *next;
+	
 }	t_redirect;
 
 typedef struct s_command
@@ -92,6 +94,8 @@ typedef struct s_state
 	int		in_fd;
 	int		pid_count;
 }	t_state;
+
+void print_command(t_command *cmd);
 
 /* token_utils.c */
 int		skip_non_content(const char *s, int i, char *quote);
@@ -219,7 +223,7 @@ int		setup_pipe(t_state *state, int has_next);
 /* heredok.c */
 void	heredoc_sigint_handler(int sig);
 int		process_heredoc_line(char *line, const char *delimiter, int pipe_fd);
-void	heredoc_child_process(const char *delimiter, int pipe_fd);
+void heredoc_child_process(const char *delimiter, int pipe_fd[2]);
 int		heredoc_parent_process(pid_t pid, int *pipe_fd);
 int		heredok(const char *delimiter);
 
