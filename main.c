@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 13:17:26 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/13 14:25:36 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 15:19:52 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -168,7 +168,7 @@ int	is_builtin(const char *cmd)
 
 int	handle_builtin(t_command *command, t_state *state)
 {
-	int	exit_code;
+	int	exit_code = 0; // 🛠 default value
 
 	if (!ft_strcmp(command->command, "exit"))
 		exit_code = handle_exit(command, state);
@@ -192,8 +192,10 @@ int	handle_builtin(t_command *command, t_state *state)
 	}
 	else if (!ft_strcmp(command->command, "echo"))
 		exit_code = echo(command);
+	// if no built-in matched, still return valid value
 	return (exit_code);
 }
+
 
 void	cmp_input(t_command *command, t_state *state)
 {
