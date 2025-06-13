@@ -6,13 +6,13 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 12:57:33 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/13 14:12:31 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 15:55:29 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-void init_comand(t_command *cmd)
+void	init_comand(t_command *cmd)
 {
 	cmd->command = NULL;
 	cmd->args = NULL;
@@ -21,7 +21,6 @@ void init_comand(t_command *cmd)
 	cmd->single_quotes = false;
 	cmd->exit_code = 0;
 }
-
 
 void	init_redirin(t_command *cmd, t_token_type inp, char *file)
 {

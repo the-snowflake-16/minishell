@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 08:01:37 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/13 14:15:44 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 15:49:47 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -228,5 +228,10 @@ int		write_line_to_pipe(int pipe_fd, char *line);
 int		handle_child_status(int status, int pipe_fd);
 int		handle_heredoc(t_command *cmd, t_state *state);
 
-
+/* create_list2.c */
+char	*strjoin_and_free(char *s1, const char *s2);
+char	*strjoin_and_free_char(char *s1, char c);
+t_parser	*creat_node(char *s);
+t_parser	*append_node(t_parser **head, t_parser **current, t_parser *new);
+int	first_quoter(char *s);
 #endif

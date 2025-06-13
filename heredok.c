@@ -6,13 +6,13 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/13 08:13:32 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/13 08:13:33 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 15:52:25 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-volatile	sig_atomic_t g_heredoc_interrupted = 0;
+volatile sig_atomic_t	g_heredoc_interrupted = 0;
 
 void	heredoc_sigint_handler(int sig)
 {

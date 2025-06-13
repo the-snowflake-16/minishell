@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 07:19:08 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/08 07:04:51 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/13 15:54:40 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,4 +95,3 @@
 // 	return (!ft_strcmp(cmd, "cd") || !ft_strcmp(cmd, "export")
 // 		|| !ft_strcmp(cmd, "unset") || !ft_strcmp(cmd, "exit"));
 // }
-

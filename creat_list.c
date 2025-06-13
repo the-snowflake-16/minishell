@@ -1,68 +1,16 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   creat_list.c                                       :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/06/13 15:49:54 by fortytwo          #+#    #+#             */
+/*   Updated: 2025/06/13 15:53:28 by fortytwo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "minishell.h"
-
-char	*strjoin_and_free(char *s1, const char *s2)
-{
-	char	*new;
-
-	new = ft_strjoin(s1, s2);
-	free(s1);
-	return (new);
-}
-
-char	*strjoin_and_free_char(char *s1, char c)
-{
-	char	temp[2];
-
-	temp[0] = c;
-	temp[1] = '\0';
-	return (strjoin_and_free(s1, temp));
-}
-
-t_parser	*creat_node(char *s)
-{
-	t_parser	*new;
-
-	new = malloc(sizeof(t_parser));
-	if (!new)
-		return (NULL);
-	new->word = ft_strdup(s);
-	new->type = chech_symbol(s);
-	new->next = NULL;
-	return (new);
-}
-
-t_parser	*append_node(t_parser **head, t_parser **current, t_parser *new_node)
-{
-	if (!new_node)
-		return (NULL);
-	if (!*head)
-	{
-		*head = new_node;
-		*current = new_node;
-	}
-	else
-	{
-		(*current)->next = new_node;
-		*current = new_node;
-	}
-	return (new_node);
-}
-
-int	first_quoter(char *s)
-{
-	int	i;
-
-	i = 0;
-	while (s[i])
-	{
-		if (s[i] == '\'')
-			return (1);
-		else if (s[i] == '"')
-			return (2);
-		i++;
-	}
-	return (0);
-}
 
 char	*check_quoter(char *word)
 {
@@ -112,6 +60,7 @@ static char	*expand_variable(char *word, int *j, t_state *state, char *expanded)
 		expanded = strjoin_and_free_char(expanded, '$');
 	return (expanded);
 }
+
 char	*clean_word(char *word, t_state *state)
 {
 	char	*expanded;
@@ -142,35 +91,32 @@ char	*clean_word(char *word, t_state *state)
 
 t_parser	*create_list(char **ss, t_state *state)
 {
-	int			i;
 	t_parser	*head;
 	t_parser	*current;
 	t_parser	*new_node;
 	char		*clean;
 	char		*expanded;
 
-	i = 0;
 	head = NULL;
 	current = NULL;
-	while (ss[i])
+	while (*ss)
 	{
-		clean = check_quoter(ss[i]);
-		if (first_quoter(ss[i]) == 1)
+		clean = check_quoter(*ss);
+		if (first_quoter(*ss) == 1)
 			new_node = creat_node(clean);
 		else
-        {
-            expanded= clean_word(clean, state);
+		{
+			expanded = clean_word(clean, state);
 			new_node = creat_node(expanded);
 			free(expanded);
-        }
+		}
 		free(clean);
 		if (!append_node(&head, &current, new_node))
 			return (NULL);
-		i++;
-    }
+		ss++;
+	}
 	return (head);
 }
-
 
 // void print_command(t_command *command)
 // {
@@ -233,5 +179,3 @@ t_parser	*create_list(char **ss, t_state *state)
 //         cmd = cmd->next;
 //     }
 // }
-
-
