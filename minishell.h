@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 08:01:37 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/13 23:25:27 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/15 16:50:37 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -238,4 +238,24 @@ char	*strjoin_and_free_char(char *s1, char c);
 t_parser	*creat_node(char *s);
 t_parser	*append_node(t_parser **head, t_parser **current, t_parser *new);
 int	first_quoter(char *s);
+
+/* command.c */
+int	handle_exit(t_command *command, t_state *state);
+int	ft_pwd(void);
+int	change_cwd(char **swd);
+int echo(t_command *command);
+int	is_builtin(const char *cmd);
+
+/* command_utils.c */
+void	exit_with_numeric_error(t_command *cmd, t_state *state);
+int	exit_with_too_many_args(t_state *state);
+void	clean_and_exit(t_command *cmd, t_state *state, int code);
+int	count(char **ss);
+int	is_numeric(const char *str);
+
+/* command_init.c */ 
+int	handle_builtin(t_command *command, t_state *state);
+void	cmp_input(t_command *command, t_state *state);
+int validate_redirections(t_parser *parser);
+
 #endif

@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/13 08:13:32 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/13 23:35:42 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/15 16:19:42 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,7 +59,7 @@ static void	restore_signal_handler(void (*old_handler)(int))
 	g_in_heredoc = 0;
 }
 
-static int	setup_heredoc_pipe_and_fork(int pipe_fd[2], 
+static int	setup_heredoc_pipe_and_fork(int pipe_fd[2],
 	void (*old_handler)(int))
 {
 	pid_t	pid;
