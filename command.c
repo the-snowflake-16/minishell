@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/15 16:31:03 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/15 16:55:20 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/23 10:08:07 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,44 +41,6 @@ int	ft_pwd(void)
 	{
 		perror("pwd");
 		return (1);
-	}
-	return (0);
-}
-
-int	change_cwd(char **swd)
-{
-	int		count;
-	char	*home;
-
-	count = 0;
-	while (swd[count])
-		count++;
-	if (count == 1)
-	{
-		home = getenv("HOME");
-		if (!home)
-		{
-			fprintf(stderr, "cd: HOME not set\n");
-			return (1);
-		}
-		if (chdir(home) == -1)
-		{
-			perror("cd");
-			return (1);
-		}
-	}
-	else if (count > 2)
-	{
-		fprintf(stderr, "cd: too many arguments\n");
-		return (1);
-	}
-	else
-	{
-		if (chdir(swd[1]) == -1)
-		{
-			perror("cd");
-			return (1);
-		}
 	}
 	return (0);
 }

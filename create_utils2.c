@@ -6,7 +6,7 @@
 /*   By: fortytwo <fortytwo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/07 13:12:52 by fortytwo          #+#    #+#             */
-/*   Updated: 2025/06/15 16:54:03 by fortytwo         ###   ########.fr       */
+/*   Updated: 2025/06/23 10:02:34 by fortytwo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 void	free_redirect(t_redirect *redirect)
 {
 	if (!redirect)
-		return;
+		return ;
 	if (redirect->file)
 		free(redirect->file);
 	free(redirect);
